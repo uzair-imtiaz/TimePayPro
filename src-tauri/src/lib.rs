@@ -33,6 +33,37 @@ pub fn run() {
         );",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "update_employees_table_drop_departments_and_modify_department",
+            sql: "
+            
+            -- Drop the Employees table
+            DROP TABLE IF EXISTS Employees;
+            
+            -- Drop the Departments table
+            DROP TABLE IF EXISTS Departments;
+    
+    
+            -- Create a new Employees table with the updated schema
+            CREATE TABLE Employees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                father_name TEXT NOT NULL,
+                cnic TEXT NOT NULL,
+                address TEXT NOT NULL,
+                department TEXT NOT NULL,
+                wage_type TEXT CHECK(wage_type IN ('Hourly', 'Monthly')) NOT NULL,
+                hourly_rate REAL,
+                base_salary REAL,
+                date_of_joining DATE,
+                status TEXT DEFAULT 'Active' CHECK(status IN ('Active', 'Inactive')) NOT NULL,
+                picture_path TEXT
+            );
+            ",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

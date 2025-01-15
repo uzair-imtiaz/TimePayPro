@@ -6,29 +6,13 @@ import { invoke } from "@tauri-apps/api/core";
 // import Database from "@tauri-apps/plugin-sql";
 import { useDatabase } from "../context/DatabaseContext";
 import PictureUpload from "./PictureUpload";
+import { departments } from "../constants/departments";
 
 const { Option } = Select;
 
 const AddEmployeeForm = () => {
   const db = useDatabase();
-  const f = async (values) => {
-    const result = await db.execute(
-      "INSERT into employees (first_name, last_name, father_name, cnic, address, department_id, wage_type, hourly_rate, base_salary, date_of_joining, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-      [
-        values.firstName,
-        values.lastName,
-        values.fatherName,
-        values.cnic,
-        values.address,
-        values.departmentId,
-        wageType,
-        values.hourlyRate,
-        values.baseSalary,
-        new Date(),
-        "Active",
-      ]
-    );
-  };
+
   const [wageType, setWageType] = useState("Monthly");
   const [pictureFile, setPictureFile] = useState(null);
 
@@ -39,10 +23,11 @@ const AddEmployeeForm = () => {
       fatherName: "",
       cnic: "",
       address: "",
-      departmentId: "",
+      department: departments[0]?.name,
       hourlyRate: "",
       baseSalary: "",
     },
+
     validationSchema: Yup.object({
       firstName: Yup.string().required("Please input the first name!"),
       lastName: Yup.string().required("Please input the last name!"),
@@ -51,9 +36,7 @@ const AddEmployeeForm = () => {
         .matches(/^\d{13}$/, "CNIC must be exactly 13 digits")
         .required("Please input the CNIC!"),
       address: Yup.string().required("Please input the address!"),
-      departmentId: Yup.number()
-        .required("Please input the department ID!")
-        .typeError("Department ID must be a number"),
+      department: Yup.string().required("Please select department"),
       hourlyRate:
         wageType === "Hourly"
           ? Yup.number()
@@ -67,8 +50,8 @@ const AddEmployeeForm = () => {
               .typeError("Base salary must be a number")
           : Yup.number().notRequired(),
     }),
+
     onSubmit: async (values, { resetForm }) => {
-      await f(values);
       try {
         let picturePath = null;
         if (pictureFile) {
@@ -77,7 +60,7 @@ const AddEmployeeForm = () => {
           const reader = new FileReader();
           reader.onload = async (e) => {
             const base64Image = e.target.result.split(",")[1];
-            await invoke("upload_image", {
+            await invoke("save_image", {
               fileName: pictureName,
               base64Content: base64Image,
             });
@@ -86,14 +69,14 @@ const AddEmployeeForm = () => {
         }
 
         const result = await db.execute(
-          "INSERT into employees (first_name, last_name, father_name, cnic, address, department_id, wage_type, hourly_rate, base_salary, date_of_joining, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+          "INSERT into employees (first_name, last_name, father_name, cnic, address, department, wage_type, hourly_rate, base_salary, date_of_joining, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
           [
             values.firstName,
             values.lastName,
             values.fatherName,
             values.cnic,
             values.address,
-            values.departmentId,
+            values.department,
             wageType,
             values.hourlyRate,
             values.baseSalary,
@@ -210,18 +193,24 @@ const AddEmployeeForm = () => {
       </div>
 
       <div style={{ marginBottom: "16px" }}>
-        <label>Department ID</label>
-        <Input
-          name="departmentId"
-          type="number"
-          value={formik.values.departmentId}
+        <label>Department</label>
+        <Select
+          name="department"
+          value={formik.values.department}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
-          placeholder="Enter department ID"
-        />
-        {formik.touched.departmentId && formik.errors.departmentId && (
+          placeholder="Select a department"
+          style={{ width: "100%" }}
+        >
+          {departments.map((dept) => (
+            <Option key={dept.id} value={dept.name}>
+              {dept.name}
+            </Option>
+          ))}
+        </Select>
+        {formik.touched.department && formik.errors.department && (
           <div style={{ color: "red", marginTop: "5px" }}>
-            {formik.errors.departmentId}
+            {formik.errors.department}
           </div>
         )}
       </div>
