@@ -20,15 +20,15 @@ const PictureUpload = () => {
       <Upload
         beforeUpload={(file) => {
           setPictureFile(file);
-          handlePreview(file); // Generate a preview URL
-          return false; // Prevent automatic upload
+          handlePreview(file);
+          return false;
         }}
         onRemove={() => {
           setPictureFile(null);
-          setPreviewUrl(null); // Clear preview when file is removed
+          setPreviewUrl(null);
         }}
         accept="image/*"
-        showUploadList={false} // Prevent default file list display
+        showUploadList={false}
       >
         <Button icon={<UploadOutlined />}>Select Picture</Button>
       </Upload>
