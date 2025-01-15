@@ -1,50 +1,48 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import React, { useEffect, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import "./App.css";
+import Sidebar from "./components/Sidebar";
+import AddEmployee from "./pages/AddEmployee";
+import Login from "./pages/Login";
+import EmployeeTable from "./components/EmployeeTable";
+import { DatabaseProvider } from "./context/DatabaseContext";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    // localStorage.setItem("isLoggedIn", "true");
+  };
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <DatabaseProvider>
+      <Router>
+        {isLoggedIn ? (
+          <Sidebar>
+            <Routes>
+              {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+              <Route path="/add-employee" element={<AddEmployee />} />
+              <Route path="/employees" element={<EmployeeTable />} />
+              {/* <Route path="/attendance" element={<AttendanceTable />} /> */}
+              {/* <Route path="*" element={<Navigate to="/dashboard" />} /> */}
+            </Routes>
+          </Sidebar>
+        ) : (
+          <Routes>
+            <Route
+              path="/login"
+              element={<Login onLoginSuccess={handleLogin} />}
+            />
+            <Route path="*" element={<Navigate to="/login" />} />
+          </Routes>
+        )}
+      </Router>
+    </DatabaseProvider>
   );
 }
 

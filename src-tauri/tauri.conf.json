@@ -12,9 +12,10 @@
   "app": {
     "windows": [
       {
-        "title": "timepaypro",
-        "width": 800,
-        "height": 600
+        "title": "Time Pay Pro",
+        "width": 1460,
+        "height": 768,
+        "resizable": true
       }
     ],
     "security": {
@@ -31,5 +32,10 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:employee_management.db"]
+    }
   }
 }
