@@ -3,7 +3,6 @@ import { Input, Button, Select, notification, Upload } from "antd";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { invoke } from "@tauri-apps/api/core";
-// import Database from "@tauri-apps/plugin-sql";
 import { useDatabase } from "../context/DatabaseContext";
 import PictureUpload from "./PictureUpload";
 import { departments } from "../constants/departments";
@@ -69,7 +68,7 @@ const AddEmployeeForm = () => {
         }
 
         const result = await db.execute(
-          "INSERT into employees (first_name, last_name, father_name, cnic, address, department, wage_type, hourly_rate, base_salary, date_of_joining, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+          "INSERT into employees (first_name, last_name, father_name, cnic, address, department, wage_type, hourly_rate, base_salary, date_of_joining, status, picture_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
           [
             values.firstName,
             values.lastName,
@@ -82,6 +81,7 @@ const AddEmployeeForm = () => {
             values.baseSalary,
             new Date(),
             "Active",
+            picturePath,
           ]
         );
         if (result?.lastInsertId) {
@@ -281,7 +281,7 @@ const AddEmployeeForm = () => {
         >
           <Button>Select Picture</Button>
         </Upload> */}
-        <PictureUpload />
+        <PictureUpload setPictureFile={setPictureFile} />
       </div>
 
       <Button type="primary" htmlType="submit" style={{ width: "100%" }}>

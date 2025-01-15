@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { Upload, Button, Image } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 
-const PictureUpload = () => {
-  const [pictureFile, setPictureFile] = useState(null);
+const PictureUpload = ({ setPictureFile }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
 
   const handlePreview = (file) => {

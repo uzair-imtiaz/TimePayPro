@@ -34,7 +34,7 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="login-container">
+    <div className="login-container" onClick={onLoginSuccess}>
       <h2>Login</h2>
       <Form
         name="login"

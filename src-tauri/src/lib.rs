@@ -1,5 +1,31 @@
+use base64::{engine::general_purpose, Engine};
+use std::fs;
+use std::io::Write;
+use std::path::Path;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-use tauri_plugin_sql::{Builder, Migration, MigrationKind};
+use tauri_plugin_sql::{Migration, MigrationKind};
+
+#[tauri::command]
+fn save_image(file_name: String, base64_content: String) -> Result<(), String> {
+    let path = Path::new("images").join(file_name);
+
+    // Decode the Base64 content
+    let decoded_content = general_purpose::STANDARD
+        .decode(&base64_content)
+        .map_err(|e| e.to_string())?;
+
+    // Create the directory if it doesn't exist
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    // Write the file to disk
+    let mut file = fs::File::create(&path).map_err(|e| e.to_string())?;
+    file.write_all(&decoded_content)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
 
 pub fn run() {
     let migrations = vec![
@@ -64,6 +90,32 @@ pub fn run() {
             ",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "create_attendance_and_salary_table",
+            sql: "
+            CREATE TABLE IF NOT EXISTS Attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                status TEXT CHECK(status IN ('Present', 'Absent', 'Leave')) NOT NULL,
+                check_in_time TEXT NOT NULL,
+                check_out_time TEXT NOT NULL,
+                hours_worked REAL,
+                FOREIGN KEY (employee_id) REFERENCES Employees(id)
+            );
+            CREATE TABLE IF NOT EXISTS Salaries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER NOT NULL,
+                month TEXT NOT NULL,        -- Format: YYYY-MM
+                gross_salary REAL NOT NULL,
+                deductions REAL DEFAULT 0,
+                bonuses REAL DEFAULT 0,
+                net_salary REAL NOT NULL,
+                FOREIGN KEY (employee_id) REFERENCES Employees(id)
+            );",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
@@ -73,7 +125,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        // .invoke_handler(tauri::generate_handler![])
+        .invoke_handler(tauri::generate_handler![save_image])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

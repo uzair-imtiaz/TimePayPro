@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Table, Avatar, notification } from "antd";
+import { Table, Avatar, notification, Popconfirm, Button } from "antd";
 import { useDatabase } from "../context/DatabaseContext";
+import { CheckCircleTwoTone, CloseCircleTwoTone } from "@ant-design/icons";
 
 const EmployeeTable = () => {
   const db = useDatabase();
@@ -23,6 +24,35 @@ const EmployeeTable = () => {
     fetchEmployees();
   }, []);
 
+  const toggleEmployeeStatus = async (employeeId, status) => {
+    try {
+      let _status;
+      if (status === "Active") {
+        _status = "Inactive";
+      } else {
+        _status = "Active";
+      }
+      await db.execute(
+        `UPDATE employees SET status = '${_status}' WHERE id = ?`,
+        [employeeId]
+      );
+      notification.success({
+        message: "Success",
+        description: `Employee marked as ${_status.toLowerCase()}.`,
+      });
+
+      // Refresh employee data
+      const updatedEmployees = await db.select("select * from employees");
+      setEmployees(updatedEmployees);
+    } catch (error) {
+      console.error("Error updating employee status:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to update employee status.",
+      });
+    }
+  };
+
   const columns = [
     {
       title: "Avatar",
@@ -30,9 +60,13 @@ const EmployeeTable = () => {
       key: "picture_path",
       render: (text) =>
         text ? (
-          <Avatar src={text} alt="Avatar" style={{ width: 40, height: 40 }} />
+          <Avatar
+            src={`../../src-tauri/${text}`}
+            alt="Avatar"
+            style={{ width: 40, height: 40 }}
+          />
         ) : (
-          <Avatar style={{ backgroundColor: "#87d068" }}>N/A</Avatar>
+          <Avatar style={{ backgroundColor: "#bb2025" }}>N/A</Avatar>
         ),
     },
     {
@@ -66,9 +100,9 @@ const EmployeeTable = () => {
       key: "address",
     },
     {
-      title: "Department ID",
-      dataIndex: "department_id",
-      key: "department_id",
+      title: "Department",
+      dataIndex: "department",
+      key: "department",
     },
     {
       title: "Wage Type",
@@ -87,6 +121,29 @@ const EmployeeTable = () => {
       key: "base_salary",
       render: (text) => (text ? `$${text}` : "-"),
     },
+    {
+      title: "Actions",
+      key: "actions",
+      fixed: "right",
+      render: (_, record) => (
+        <Popconfirm
+          title={`Are you sure you want to mark this employee as ${
+            record.status === "Active" ? "inactive" : "active"
+          }?`}
+          onConfirm={() => toggleEmployeeStatus(record.id, record.status)}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button type="link" danger>
+            {record.status === "Active" ? (
+              <CloseCircleTwoTone twoToneColor={"#ff4d4f"} />
+            ) : (
+              <CheckCircleTwoTone twoToneColor="#52c41a" />
+            )}
+          </Button>
+        </Popconfirm>
+      ),
+    },
   ];
 
   return (
@@ -96,7 +153,12 @@ const EmployeeTable = () => {
         dataSource={employees}
         rowKey="id"
         pagination={false}
-        style={{ marginTop: 20 }}
+        style={{
+          marginTop: 20,
+          width: "100%",
+          overflow: "auto",
+          display: "block",
+        }}
       />
     </div>
   );

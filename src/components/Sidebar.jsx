@@ -20,15 +20,15 @@ const Sidebar = ({ children }) => {
           defaultSelectedKeys={["1"]}
           style={{ height: "100%", borderRight: 0 }}
         >
-          <Menu.Item key="1" icon={<HomeOutlined />}>
+          <Menu.Item key="1" icon={<UserAddOutlined />}>
             <Link to="/employees">Employees</Link>
           </Menu.Item>
           <Menu.Item key="2" icon={<UserAddOutlined />}>
             <Link to="/add-employee">Add Employee</Link>
           </Menu.Item>
-          {/* <Menu.Item key="3" icon={<FileTextOutlined />}>
+          <Menu.Item key="3" icon={<FileTextOutlined />}>
             <Link to="/attendance">Attendance</Link>
-          </Menu.Item> */}
+          </Menu.Item>
         </Menu>
       </Sider>
       <Layout style={{ padding: "0 0px 10px 10px" }}>
