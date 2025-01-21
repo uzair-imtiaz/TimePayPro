@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import EmployeeTable from "./components/EmployeeTable";
 import { DatabaseProvider } from "./context/DatabaseContext";
 import AttendanceTable from "./components/AttendanceTable";
+import EmployeeDetail from "./pages/EmployeeDetail";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -30,6 +31,7 @@ function App() {
               <Route path="/add-employee" element={<AddEmployee />} />
               <Route path="/employees" element={<EmployeeTable />} />
               <Route path="/attendance" element={<AttendanceTable />} />
+              <Route path="/employees/:id" element={<EmployeeDetail />} />
               {/* <Route path="*" element={<Navigate to="/dashboard" />} /> */}
             </Routes>
           </Sidebar>

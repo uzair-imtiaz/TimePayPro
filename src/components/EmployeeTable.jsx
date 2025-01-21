@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Table, Avatar, notification, Popconfirm, Button } from "antd";
 import { useDatabase } from "../context/DatabaseContext";
 import { CheckCircleTwoTone, CloseCircleTwoTone } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 const EmployeeTable = () => {
+  const navigate = useNavigate();
   const db = useDatabase();
   const [employees, setEmployees] = useState([]);
 
@@ -159,6 +161,10 @@ const EmployeeTable = () => {
           overflow: "auto",
           display: "block",
         }}
+        onRow={(record) => ({
+          onClick: () => navigate(`/employees/${record.id}`),
+          style: { cursor: "pointer" },
+        })}
       />
     </div>
   );
