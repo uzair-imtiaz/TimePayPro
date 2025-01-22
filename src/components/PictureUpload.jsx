@@ -15,7 +15,6 @@ const PictureUpload = ({ setPictureFile }) => {
 
   return (
     <div style={{ marginBottom: "16px" }}>
-      <div>Picture: </div>
       <Upload
         beforeUpload={(file) => {
           setPictureFile(file);

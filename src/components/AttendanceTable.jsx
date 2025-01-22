@@ -27,7 +27,7 @@ const AttendanceTable = () => {
     const fetchAttendance = async () => {
       try {
         const data = await db.select(
-          "SELECT * FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
+          "SELECT first_name, last_name, date, a.status, check_in_time, check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
         );
         setAttendance(data);
       } catch (error) {
@@ -80,11 +80,6 @@ const AttendanceTable = () => {
       dataIndex: "check_out_time",
       key: "check_out_time",
     },
-    {
-      title: "Hours Worked",
-      dataIndex: "hours_worked",
-      key: "hours_worked",
-    },
   ];
 
   const handleMarkAttendance = async () => {
@@ -98,23 +93,10 @@ const AttendanceTable = () => {
     }
 
     try {
-      let hoursWorked = null;
-      if (checkInTime && checkOutTime) {
-        const checkInHours = checkInTime.hour();
-        const checkInMinutes = checkInTime.minute();
-        const checkOutHours = checkOutTime.hour();
-        const checkOutMinutes = checkOutTime.minute();
-        hoursWorked =
-          (checkOutHours * 60 +
-            checkOutMinutes -
-            (checkInHours * 60 + checkInMinutes)) /
-          60;
-      }
-
       await db.execute(
         `
-        INSERT INTO Attendance (employee_id, date, status, check_in_time, check_out_time, hours_worked)
-        VALUES (?, ?, ?, ?, ?, ?);
+        INSERT INTO Attendance (employee_id, date, status, check_in_time, check_out_time)
+        VALUES (?, ?, ?, ?, ?);
         `,
         [
           selectedEmployee,
@@ -122,7 +104,6 @@ const AttendanceTable = () => {
           status,
           checkInTime.format("HH:mm"),
           checkOutTime.format("HH:mm"),
-          hoursWorked,
         ]
       );
       notification.success({
@@ -130,7 +111,6 @@ const AttendanceTable = () => {
         description: "Attendance marked successfully.",
       });
 
-      // Refresh attendance list
       const updatedAttendance = await db.select(
         "SELECT * FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
       );
@@ -163,7 +143,6 @@ const AttendanceTable = () => {
           placeholder="Select Employee"
           value={selectedEmployee}
           onChange={(value) => {
-            debugger;
             setSelectedEmployee(value);
           }}
           style={{ width: "25%" }}

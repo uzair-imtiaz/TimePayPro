@@ -29,6 +29,12 @@ const Sidebar = ({ children }) => {
           <Menu.Item key="3" icon={<FileTextOutlined />}>
             <Link to="/attendance">Attendance</Link>
           </Menu.Item>
+          <Menu.Item key="4" icon={<FileTextOutlined />}>
+            <Link to="/reports">Reports</Link>
+          </Menu.Item>
+          <Menu.Item key="5" icon={<FileTextOutlined />}>
+            <Link to="/advance">Advance</Link>
+          </Menu.Item>
         </Menu>
       </Sider>
       <Layout style={{ padding: "0 0px 10px 10px" }}>

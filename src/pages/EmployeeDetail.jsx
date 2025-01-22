@@ -2,21 +2,19 @@ import React, { useState, useEffect } from "react";
 import { Row, Col, Card, Statistic, Badge, Table } from "antd";
 import { useParams } from "react-router-dom";
 import { useDatabase } from "../context/DatabaseContext";
-// import "./calendar.css";
 import Calendar from "../components/Calender";
 
 const EmployeeDetail = () => {
-  const { id } = useParams(); // Get employee ID from route params
+  const { id } = useParams();
   const db = useDatabase();
   const [employee, setEmployee] = useState(null);
   const [attendance, setAttendance] = useState([]);
   const [summary, setSummary] = useState({
     leavesUsed: 0,
-    leavesAllotted: 0,
-    deductions: 0,
-    bonuses: 0,
+    advance: 0,
+    tax: 0,
     overtime: 0,
-    allowances: 0,
+    netSalary: 0,
   });
 
   useEffect(() => {
@@ -43,9 +41,7 @@ const EmployeeDetail = () => {
 
         // Fetch Summary
         const [summaryData] = await db.select(
-          `SELECT SUM(deductions) as deductions, SUM(bonuses) as bonuses, 
-           SUM(overtime_hours) as overtime, SUM(allowances) as allowances 
-           FROM salaries WHERE employee_id = ?`,
+          `SELECT tax, advance, overtime_hours_worked, gross_salary, net_salary FROM Salaries WHERE employee_id = ? AND month = strftime('%Y-%m', 'now');`,
           [id]
         );
 
@@ -56,11 +52,10 @@ const EmployeeDetail = () => {
 
         setSummary({
           leavesUsed: leavesData.leavesUsed,
-          leavesAllotted: employeeData ? employeeData.leaves_allotted || 0 : 0,
-          deductions: summaryData.deductions || 0,
-          bonuses: summaryData.bonuses || 0,
+          advance: summaryData.advance || 0,
           overtime: summaryData.overtime || 0,
-          allowances: summaryData.allowances || 0,
+          tax: summaryData.tax || 0,
+          netSalary: summaryData.netSalary || 0,
         });
       } catch (error) {
         console.error("Error fetching employee details:", error);
@@ -69,12 +64,6 @@ const EmployeeDetail = () => {
 
     fetchDetails();
   }, [id, db]);
-
-  const sampleAttendanceData = [
-    { date: "2025-01-02", status: "Present" },
-    { date: "2025-01-03", status: "Absent" },
-    { date: "2025-01-05", status: "Leave" },
-  ];
 
   const getListData = (value) => {
     const dateString = value.format("YYYY-MM-DD");
@@ -113,6 +102,8 @@ const EmployeeDetail = () => {
     return <div>Loading...</div>;
   }
 
+  console.log("employee", employee);
+
   return (
     <div>
       <Row gutter={[16, 16]}>
@@ -126,7 +117,7 @@ const EmployeeDetail = () => {
               <strong>Department:</strong> {employee.department}
             </p>
             <p>
-              <strong>Wage Type:</strong> {employee.wage_type}
+              <strong>Base Salary:</strong> {employee.base_salary}
             </p>
             <p>
               <strong>CNIC:</strong> {employee.cnic}
@@ -147,26 +138,17 @@ const EmployeeDetail = () => {
               <Col span={8}>
                 <Statistic
                   title="Leaves Allotted"
-                  value={summary.leavesAllotted}
+                  value={employee.leaves_allotted}
                 />
               </Col>
               <Col span={8}>
-                <Statistic
-                  title="Deductions"
-                  value={`$${summary.deductions}`}
-                />
-              </Col>
-              <Col span={8}>
-                <Statistic title="Bonuses" value={`$${summary.bonuses}`} />
+                <Statistic title="Advance" value={`${summary.advance}`} />
               </Col>
               <Col span={8}>
                 <Statistic title="Overtime Hours" value={summary.overtime} />
               </Col>
               <Col span={8}>
-                <Statistic
-                  title="Allowances"
-                  value={`$${summary.allowances}`}
-                />
+                <Statistic title="Allowance" value={`${employee.allowance}`} />
               </Col>
             </Row>
           </Card>
@@ -177,25 +159,41 @@ const EmployeeDetail = () => {
         {/* Attendance Calendar */}
         <Col span={12}>
           <Card title="Attendance Calendar" bordered>
-            <Calendar attendanceData={sampleAttendanceData} />
+            <Calendar attendanceData={attendance} />
           </Card>
         </Col>
-
-        {/* Attendance Table */}
         <Col span={12}>
-          <Card title="Attendance Details" bordered>
-            <Table
-              columns={[
-                { title: "Date", dataIndex: "date", key: "date" },
-                { title: "Status", dataIndex: "status", key: "status" },
-              ]}
-              dataSource={attendance.map((att, index) => ({
-                key: index,
-                date: att.date,
-                status: att.status,
-              }))}
-              pagination={{ pageSize: 5 }}
-            />
+          <Card title="Documents" bordered>
+            <Row gutter={[16, 16]}>
+              {employee.picture_path && (
+                <Col span={12}>
+                  <h4>Profile Picture</h4>
+                  <img
+                    src={`../../src-tauri/${employee.picture_path}`}
+                    alt="Employee Profile"
+                    style={{
+                      width: "100%",
+                      maxHeight: "200px",
+                      objectFit: "cover",
+                    }}
+                  />
+                </Col>
+              )}
+              {employee.cnic_image_path && (
+                <Col span={12}>
+                  <h4>CNIC Image</h4>
+                  <img
+                    src={`../../src-tauri/${employee.cnic_image_path}`}
+                    alt="CNIC"
+                    style={{
+                      width: "100%",
+                      maxHeight: "200px",
+                      objectFit: "cover",
+                    }}
+                  />
+                </Col>
+              )}
+            </Row>
           </Card>
         </Col>
       </Row>

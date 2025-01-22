@@ -116,6 +116,82 @@ pub fn run() {
             );",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "update_employee_and_salary_tables",
+            sql: "
+            -- Drop and recreate all tables
+
+            -- Drop old tables
+            DROP TABLE IF EXISTS Attendance;
+            DROP TABLE IF EXISTS Salaries;
+            DROP TABLE IF EXISTS Employees;
+
+            -- Recreate Employees table with updated schema
+            CREATE TABLE Employees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                father_name TEXT NOT NULL,
+                cnic TEXT NOT NULL,
+                address TEXT NOT NULL,
+                department TEXT NOT NULL,
+                phone_number TEXT NOT NULL,
+                guardian_phone_number TEXT NOT NULL,
+                cnic_image_path TEXT DEFAULT '',
+                allowance REAL DEFAULT 0,
+                base_salary REAL,
+                date_of_joining DATE,
+                leaves_allotted REAL DEFAULT 0,
+                status TEXT DEFAULT 'Active' CHECK(status IN ('Active', 'Inactive')) NOT NULL,
+                picture_path TEXT
+            );
+
+            -- Recreate Salaries table with updated schema
+            CREATE TABLE Salaries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER NOT NULL,
+                month TEXT NOT NULL,        -- Format: YYYY-MM
+                gross_salary REAL NOT NULL,
+                advance REAL DEFAULT 0,
+                tax REAL DEFAULT 0,
+                overtime_hours_worked REAL DEFAULT 0,
+                leaves_used REAL DEFAULT 0,
+                net_salary REAL NOT NULL,
+                FOREIGN KEY (employee_id) REFERENCES Employees(id)
+            );
+
+            -- Recreate Attendance table with updated schema
+            CREATE TABLE Attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                status TEXT CHECK(status IN ('Present', 'Absent', 'Leave')) NOT NULL,
+                check_in_time TEXT NOT NULL,
+                check_out_time TEXT NOT NULL,
+                FOREIGN KEY (employee_id) REFERENCES Employees(id)
+            );
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 6,
+            description: "make check_in_time and check_out_time nullable",
+            sql: "
+            DROP TABLE IF EXISTS Attendance;
+
+            CREATE TABLE Attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                status TEXT CHECK(status IN ('Present', 'Absent', 'Leave')) NOT NULL,
+                check_in_time TEXT,
+                check_out_time TEXT,
+                FOREIGN KEY (employee_id) REFERENCES Employees(id)
+            );
+            ",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

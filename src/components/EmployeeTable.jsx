@@ -12,7 +12,7 @@ const EmployeeTable = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const employeeData = await db.select("select * from employees");
+        const employeeData = await db.select("SELECT * FROM employees");
         setEmployees(employeeData);
       } catch (error) {
         console.error("Error fetching employees:", error);
@@ -28,23 +28,17 @@ const EmployeeTable = () => {
 
   const toggleEmployeeStatus = async (employeeId, status) => {
     try {
-      let _status;
-      if (status === "Active") {
-        _status = "Inactive";
-      } else {
-        _status = "Active";
-      }
-      await db.execute(
-        `UPDATE employees SET status = '${_status}' WHERE id = ?`,
-        [employeeId]
-      );
+      const newStatus = status === "Active" ? "Inactive" : "Active";
+      await db.execute("UPDATE employees SET status = ? WHERE id = ?", [
+        newStatus,
+        employeeId,
+      ]);
       notification.success({
         message: "Success",
-        description: `Employee marked as ${_status.toLowerCase()}.`,
+        description: `Employee marked as ${newStatus.toLowerCase()}.`,
       });
 
-      // Refresh employee data
-      const updatedEmployees = await db.select("select * from employees");
+      const updatedEmployees = await db.select("SELECT * FROM employees");
       setEmployees(updatedEmployees);
     } catch (error) {
       console.error("Error updating employee status:", error);
@@ -97,6 +91,26 @@ const EmployeeTable = () => {
       key: "cnic",
     },
     {
+      title: "CNIC Image",
+      dataIndex: "cnic_image_path",
+      key: "cnic_image_path",
+      render: (text) =>
+        text ? (
+          <Avatar
+            src={`../../src-tauri/${text}`}
+            alt="CNIC"
+            // style={{ width: 40, height: 40 }}
+          />
+        ) : (
+          <Avatar style={{ backgroundColor: "#bb2025" }}>N/A</Avatar>
+        ),
+    },
+    {
+      title: "Phone Number",
+      dataIndex: "phone_number",
+      key: "phone_number",
+    },
+    {
       title: "Address",
       dataIndex: "address",
       key: "address",
@@ -105,11 +119,6 @@ const EmployeeTable = () => {
       title: "Department",
       dataIndex: "department",
       key: "department",
-    },
-    {
-      title: "Wage Type",
-      dataIndex: "wage_type",
-      key: "wage_type",
     },
     {
       title: "Hourly Rate",
@@ -124,6 +133,12 @@ const EmployeeTable = () => {
       render: (text) => (text ? `$${text}` : "-"),
     },
     {
+      title: "Allowances",
+      dataIndex: "allowances",
+      key: "allowances",
+      render: (text) => (text ? `$${text}` : "-"),
+    },
+    {
       title: "Actions",
       key: "actions",
       fixed: "right",
@@ -132,11 +147,14 @@ const EmployeeTable = () => {
           title={`Are you sure you want to mark this employee as ${
             record.status === "Active" ? "inactive" : "active"
           }?`}
-          onConfirm={() => toggleEmployeeStatus(record.id, record.status)}
+          onConfirm={(e) => {
+            e.stopPropagation();
+            toggleEmployeeStatus(record.id, record.status);
+          }}
           okText="Yes"
           cancelText="No"
         >
-          <Button type="link" danger>
+          <Button type="link" danger onClick={(e) => e.stopPropagation()}>
             {record.status === "Active" ? (
               <CloseCircleTwoTone twoToneColor={"#ff4d4f"} />
             ) : (
