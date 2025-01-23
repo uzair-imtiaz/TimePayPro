@@ -99,11 +99,15 @@ const AddAdvance = () => {
           name="advance_amount"
           rules={[
             { required: true, message: "Please enter the advance amount." },
-            { type: "number", min: 1, message: "Amount must be at least 1." },
+            {
+              type: "number",
+              message:
+                "Warning: Entering a negative value will subtract that amount from the existing advance.",
+            },
           ]}
         >
           <InputNumber
-            placeholder="Enter advance amount"
+            placeholder="Enter advance amount (negative to subtract)"
             style={{ width: "100%" }}
           />
         </Form.Item>

@@ -3,7 +3,7 @@ import { Row, Col, Card, Statistic, Badge, Table } from "antd";
 import { useParams } from "react-router-dom";
 import { useDatabase } from "../context/DatabaseContext";
 import Calendar from "../components/Calender";
-
+import { Image } from "antd";
 const EmployeeDetail = () => {
   const { id } = useParams();
   const db = useDatabase();
@@ -168,7 +168,7 @@ const EmployeeDetail = () => {
               {employee.picture_path && (
                 <Col span={12}>
                   <h4>Profile Picture</h4>
-                  <img
+                  <Image
                     src={`../../src-tauri/${employee.picture_path}`}
                     alt="Employee Profile"
                     style={{
@@ -182,7 +182,7 @@ const EmployeeDetail = () => {
               {employee.cnic_image_path && (
                 <Col span={12}>
                   <h4>CNIC Image</h4>
-                  <img
+                  <Image
                     src={`../../src-tauri/${employee.cnic_image_path}`}
                     alt="CNIC"
                     style={{

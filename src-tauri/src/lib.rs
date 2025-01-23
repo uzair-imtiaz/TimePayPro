@@ -192,6 +192,48 @@ pub fn run() {
             ",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 7,
+            description: "add_overtime_rate_to_employees",
+            sql: "
+            ALTER TABLE Employees ADD COLUMN overtime_rate REAL DEFAULT 0;
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 8,
+            description: "add_unique_constraint_to_attendance_and_salaries",
+            sql: "
+            DROP TABLE IF EXISTS Attendance;
+            DROP TABLE IF EXISTS Salaries;
+
+            CREATE TABLE Attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                status TEXT CHECK(status IN ('Present', 'Absent', 'Leave')) NOT NULL,
+                check_in_time TEXT,
+                check_out_time TEXT,
+                FOREIGN KEY (employee_id) REFERENCES Employees(id),
+                UNIQUE (employee_id, date)
+            );
+
+            CREATE TABLE Salaries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER NOT NULL,
+                month TEXT NOT NULL,
+                gross_salary REAL NOT NULL,
+                advance REAL DEFAULT 0,
+                tax REAL DEFAULT 0,
+                overtime_hours_worked REAL DEFAULT 0,
+                leaves_used REAL DEFAULT 0,
+                net_salary REAL NOT NULL,
+                FOREIGN KEY (employee_id) REFERENCES Employees(id),
+                UNIQUE (employee_id, month)
+            );
+            ",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

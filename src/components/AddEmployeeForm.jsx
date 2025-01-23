@@ -27,7 +27,8 @@ const AddEmployeeForm = () => {
       department: departments[0]?.name,
       allowance: 0,
       baseSalary: "",
-      leavesAllotted: "",
+      leavesAllotted: 0,
+      overtimeRate: 0,
     },
 
     validationSchema: Yup.object({
@@ -57,6 +58,9 @@ const AddEmployeeForm = () => {
       leavesAllotted: Yup.number()
         .min(0, "Leaves allotted cannot be negative")
         .required("Please input the number of leaves allotted!"),
+      overtimeRate: Yup.number()
+        .min(0, "Overtime rate cannot be negative")
+        .required("Please input the overtime rate!"),
     }),
 
     onSubmit: async (values, { resetForm }) => {
@@ -93,7 +97,7 @@ const AddEmployeeForm = () => {
         }
 
         const result = await db.execute(
-          "INSERT INTO employees (first_name, last_name, father_name, cnic, phone_number, guardian_phone_number, address, department, allowance, base_salary, leaves_allotted, date_of_joining, status, picture_path, cnic_image_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+          "INSERT INTO employees (first_name, last_name, father_name, cnic, phone_number, guardian_phone_number, address, department, allowance, base_salary, leaves_allotted, date_of_joining, status, picture_path, cnic_image_path, overtime_rate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
           [
             values.firstName,
             values.lastName,
@@ -110,6 +114,7 @@ const AddEmployeeForm = () => {
             "Active",
             picturePath,
             cnicImagePath,
+            values.overtimeRate,
           ]
         );
 
@@ -330,23 +335,34 @@ const AddEmployeeForm = () => {
             <PictureUpload setPictureFile={setCnicImageFile} />
           </div>
         </div>
-      </div>
 
-      {/* Full Width Fields */}
-      <div style={{ marginBottom: "16px" }}>
-        <label>Address</label>
-        <Input.TextArea
-          name="address"
-          value={formik.values.address}
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
-          placeholder="Enter address"
-        />
-        {formik.touched.address && formik.errors.address && (
-          <div style={{ color: "red", marginTop: "5px" }}>
-            {formik.errors.address}
-          </div>
-        )}
+        <div style={{ marginBottom: "16px" }}>
+          <label>Address</label>
+          <Input.TextArea
+            name="address"
+            value={formik.values.address}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder="Enter address"
+          />
+          {formik.touched.address && formik.errors.address && (
+            <div style={{ color: "red", marginTop: "5px" }}>
+              {formik.errors.address}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: "16px" }}>
+          <label>Overtime Rate</label>
+          <Input
+            name="overtimeRate"
+            type="number"
+            value={formik.values.overtimeRate}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder="Enter overtime rate"
+          />
+        </div>
       </div>
 
       <Button type="primary" htmlType="submit" style={{ width: "100%" }}>
