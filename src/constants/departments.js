@@ -5,14 +5,14 @@ export const departments = [
   },
   {
     id: 2,
-    name: "Freights",
+    name: "Weighing & Loading",
   },
   {
     id: 3,
-    name: "Management",
+    name: "Admin",
   },
   {
     id: 4,
-    name: "Other",
+    name: "Bank",
   },
 ];

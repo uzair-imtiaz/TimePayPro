@@ -3,9 +3,11 @@
 import React from "react";
 import { Layout, Menu } from "antd";
 import {
-  HomeOutlined,
+  TeamOutlined,
   UserAddOutlined,
-  FileTextOutlined,
+  CalendarOutlined,
+  BarChartOutlined,
+  DollarCircleOutlined,
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 
@@ -20,19 +22,19 @@ const Sidebar = ({ children }) => {
           defaultSelectedKeys={["1"]}
           style={{ height: "100%", borderRight: 0 }}
         >
-          <Menu.Item key="1" icon={<UserAddOutlined />}>
+          <Menu.Item key="1" icon={<TeamOutlined />}>
             <Link to="/employees">Employees</Link>
           </Menu.Item>
           <Menu.Item key="2" icon={<UserAddOutlined />}>
             <Link to="/add-employee">Add Employee</Link>
           </Menu.Item>
-          <Menu.Item key="3" icon={<FileTextOutlined />}>
+          <Menu.Item key="3" icon={<CalendarOutlined />}>
             <Link to="/attendance">Attendance</Link>
           </Menu.Item>
-          <Menu.Item key="4" icon={<FileTextOutlined />}>
+          <Menu.Item key="4" icon={<BarChartOutlined />}>
             <Link to="/reports">Reports</Link>
           </Menu.Item>
-          <Menu.Item key="5" icon={<FileTextOutlined />}>
+          <Menu.Item key="5" icon={<DollarCircleOutlined />}>
             <Link to="/advance">Advance</Link>
           </Menu.Item>
         </Menu>

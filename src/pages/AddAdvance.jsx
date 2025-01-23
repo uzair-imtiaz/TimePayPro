@@ -36,21 +36,18 @@ const AddAdvance = () => {
     try {
       setLoading(true);
 
-      // Check if a salary record exists for the current month
-      const currentMonth = new Date().toISOString().slice(0, 7); // Format: YYYY-MM
+      const currentMonth = new Date().toISOString().slice(0, 7);
       const salaryRecord = await db.select(
         "SELECT id FROM Salaries WHERE employee_id = ? AND month = ?",
         [employee_id, currentMonth]
       );
 
       if (salaryRecord.length === 0) {
-        // If no salary record exists for the current month, create one
         await db.execute(
           "INSERT INTO Salaries (employee_id, month, gross_salary, advance, net_salary) VALUES (?, ?, 0, ?, 0)",
           [employee_id, currentMonth, advance_amount]
         );
       } else {
-        // Update the advance in the existing salary record
         await db.execute(
           "UPDATE Salaries SET advance = advance + ? WHERE employee_id = ? AND month = ?",
           [advance_amount, employee_id, currentMonth]
@@ -62,7 +59,6 @@ const AddAdvance = () => {
         description: "Advance added successfully.",
       });
 
-      // Reset the form
       form.resetFields();
     } catch (error) {
       console.error("Error adding advance:", error);

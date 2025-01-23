@@ -106,6 +106,7 @@ const AttendanceTable = () => {
           checkOutTime.format("HH:mm"),
         ]
       );
+
       notification.success({
         message: "Success",
         description: "Attendance marked successfully.",
