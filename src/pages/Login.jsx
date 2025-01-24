@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Form, Input, Button, notification } from "antd";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
-import "./Login.css"; // Optional for styling
+import "./Login.css";
+import { useNavigate } from "react-router-dom";
 
 const predefinedCredentials = {
   username: "admin",
@@ -10,7 +11,7 @@ const predefinedCredentials = {
 
 const Login = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
-
+  const navigate = useNavigate();
   const handleLogin = (values) => {
     setLoading(true);
     const { username, password } = values;
@@ -24,6 +25,7 @@ const Login = ({ onLoginSuccess }) => {
         description: "Welcome back!",
       });
       onLoginSuccess();
+      navigate("/employees");
     } else {
       notification.error({
         message: "Login Failed",
