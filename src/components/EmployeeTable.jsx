@@ -124,19 +124,19 @@ const EmployeeTable = () => {
       title: "Hourly Rate",
       dataIndex: "hourly_rate",
       key: "hourly_rate",
-      render: (text) => (text ? `$${text}` : "-"),
+      render: (text) => (text ? `${text}` : "-"),
     },
     {
       title: "Base Salary",
       dataIndex: "base_salary",
       key: "base_salary",
-      render: (text) => (text ? `$${text}` : "-"),
+      render: (text) => (text ? `${text}` : "-"),
     },
     {
       title: "Allowances",
       dataIndex: "allowances",
       key: "allowances",
-      render: (text) => (text ? `$${text}` : "-"),
+      render: (text) => (text ? `${text}` : "-"),
     },
     {
       title: "Actions",

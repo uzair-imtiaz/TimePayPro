@@ -234,6 +234,30 @@ pub fn run() {
             ",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 9,
+            description: "add_working_hours_to_employees",
+            sql: "
+            ALTER TABLE Employees ADD COLUMN working_hours REAL DEFAULT 0;
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 10,
+            description: "add_short_time_to_salaries",
+            sql: "
+            ALTER TABLE Salaries ADD COLUMN short_time REAL DEFAULT 0;
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 11,
+            description: "add_designation_to_employees",
+            sql: "
+            ALTER TABLE Employees ADD COLUMN designation TEXT;
+            ",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

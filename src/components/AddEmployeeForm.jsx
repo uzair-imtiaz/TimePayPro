@@ -29,6 +29,8 @@ const AddEmployeeForm = () => {
       baseSalary: "",
       leavesAllotted: 0,
       overtimeRate: 0,
+      workingHours: 0,
+      designation: "",
     },
 
     validationSchema: Yup.object({
@@ -61,6 +63,10 @@ const AddEmployeeForm = () => {
       overtimeRate: Yup.number()
         .min(0, "Overtime rate cannot be negative")
         .required("Please input the overtime rate!"),
+      workingHours: Yup.number()
+        .min(0, "Working hours cannot be negative")
+        .required("Please input the working hours!"),
+      designation: Yup.string().required("Please input the designation!"),
     }),
 
     onSubmit: async (values, { resetForm }) => {
@@ -97,7 +103,7 @@ const AddEmployeeForm = () => {
         }
 
         const result = await db.execute(
-          "INSERT INTO employees (first_name, last_name, father_name, cnic, phone_number, guardian_phone_number, address, department, allowance, base_salary, leaves_allotted, date_of_joining, status, picture_path, cnic_image_path, overtime_rate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
+          "INSERT INTO employees (first_name, last_name, father_name, cnic, phone_number, guardian_phone_number, address, department, allowance, base_salary, leaves_allotted, date_of_joining, status, picture_path, cnic_image_path, overtime_rate, working_hours, designation) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)",
           [
             values.firstName,
             values.lastName,
@@ -115,6 +121,8 @@ const AddEmployeeForm = () => {
             picturePath,
             cnicImagePath,
             values.overtimeRate,
+            values.workingHours,
+            values.designation,
           ]
         );
 
@@ -337,6 +345,51 @@ const AddEmployeeForm = () => {
         </div>
 
         <div style={{ marginBottom: "16px" }}>
+          <label>Working Hours</label>
+          <Input
+            name="workingHours"
+            type="number"
+            value={formik.values.workingHours}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder="Enter working hours"
+          />
+        </div>
+        {formik.touched.workingHours && formik.errors.workingHours && (
+          <div style={{ color: "red", marginTop: "5px" }}>
+            {formik.errors.workingHours}
+          </div>
+        )}
+
+        <div style={{ marginBottom: "16px" }}>
+          <label>Overtime Rate</label>
+          <Input
+            name="overtimeRate"
+            type="number"
+            value={formik.values.overtimeRate}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder="Enter overtime rate"
+          />
+        </div>
+
+        <div style={{ marginBottom: "16px" }}>
+          <label>Designation</label>
+          <Input
+            name="designation"
+            value={formik.values.designation}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder="Enter designation"
+          />
+          {formik.touched.designation && formik.errors.designation && (
+            <div style={{ color: "red", marginTop: "5px" }}>
+              {formik.errors.designation}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: "16px" }}>
           <label>Address</label>
           <Input.TextArea
             name="address"
@@ -350,18 +403,6 @@ const AddEmployeeForm = () => {
               {formik.errors.address}
             </div>
           )}
-        </div>
-
-        <div style={{ marginBottom: "16px" }}>
-          <label>Overtime Rate</label>
-          <Input
-            name="overtimeRate"
-            type="number"
-            value={formik.values.overtimeRate}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            placeholder="Enter overtime rate"
-          />
         </div>
       </div>
 

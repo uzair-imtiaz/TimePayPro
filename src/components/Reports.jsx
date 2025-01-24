@@ -11,10 +11,7 @@ const ReportsPage = () => {
         <Tabs.TabPane tab="Summary Report" key="1">
           <SummaryReport />
         </Tabs.TabPane>
-        <Tabs.TabPane tab="Detailed Report" key="2">
-          <DetailedReport />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab="Salary Report" key="3">
+        <Tabs.TabPane tab="Detailed Report" key="3">
           <SalaryReport />
         </Tabs.TabPane>
       </Tabs>

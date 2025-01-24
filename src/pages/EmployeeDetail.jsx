@@ -41,21 +41,16 @@ const EmployeeDetail = () => {
 
         // Fetch Summary
         const [summaryData] = await db.select(
-          `SELECT tax, advance, overtime_hours_worked, gross_salary, net_salary FROM Salaries WHERE employee_id = ? AND month = strftime('%Y-%m', 'now');`,
-          [id]
-        );
-
-        const [leavesData] = await db.select(
-          `SELECT COUNT(*) as leavesUsed FROM attendance WHERE employee_id = ? AND status = 'Leave'`,
+          `SELECT tax, advance, overtime_hours_worked, gross_salary, net_salary, leaves_used FROM Salaries WHERE employee_id = ? AND month = strftime('%Y-%m', 'now');`,
           [id]
         );
 
         setSummary({
-          leavesUsed: leavesData.leavesUsed,
+          leavesUsed: summaryData.leaves_used,
           advance: summaryData.advance || 0,
-          overtime: summaryData.overtime || 0,
-          tax: summaryData.tax || 0,
-          netSalary: summaryData.netSalary || 0,
+          overtime: summaryData.overtime_hours_worked || 0,
+          tax: employee.base_salary >= 500000 ? base_salary * 0.2275 : 0,
+          grossSalary: summaryData.gross_salary || 0,
         });
       } catch (error) {
         console.error("Error fetching employee details:", error);
@@ -65,44 +60,15 @@ const EmployeeDetail = () => {
     fetchDetails();
   }, [id, db]);
 
-  const getListData = (value) => {
-    const dateString = value.format("YYYY-MM-DD");
-    const attendanceRecord = attendance.find((att) => att.date === dateString);
-
-    if (attendanceRecord) {
-      return [
-        {
-          type:
-            attendanceRecord.status === "Present"
-              ? "success"
-              : attendanceRecord.status === "Absent"
-              ? "error"
-              : "warning",
-          content: attendanceRecord.status,
-        },
-      ];
-    }
-    return [];
-  };
-
-  const dateCellRender = (value) => {
-    const listData = getListData(value);
-    return (
-      <ul className="events">
-        {listData.map((item, index) => (
-          <li key={index}>
-            <Badge status={item.type} text={item.content} />
-          </li>
-        ))}
-      </ul>
-    );
-  };
-
   if (!employee) {
     return <div>Loading...</div>;
   }
 
-  console.log("employee", employee);
+  const netSalary =
+    (summary.grossSalary ?? 0) -
+    (summary.tax ?? 0) -
+    (summary.advance ?? 0) +
+    (employee.allowance ?? 0);
 
   return (
     <div>
@@ -149,6 +115,12 @@ const EmployeeDetail = () => {
               </Col>
               <Col span={8}>
                 <Statistic title="Allowance" value={`${employee.allowance}`} />
+              </Col>
+              <Col span={8}>
+                <Statistic title="Tax" value={`${summary.tax}`} />
+              </Col>
+              <Col span={8}>
+                <Statistic title="Net Salary" value={netSalary} />
               </Col>
             </Row>
           </Card>
