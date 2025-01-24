@@ -1,7 +1,6 @@
 import React from "react";
 import { Tabs } from "antd";
 import SummaryReport from "./SummaryReport";
-import DetailedReport from "./DetailedReport";
 import SalaryReport from "./SalaryReport";
 
 const ReportsPage = () => {
