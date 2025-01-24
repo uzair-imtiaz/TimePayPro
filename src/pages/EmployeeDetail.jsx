@@ -119,9 +119,9 @@ const EmployeeDetail = () => {
               <Col span={8}>
                 <Statistic title="Tax" value={`${summary.tax}`} />
               </Col>
-              <Col span={8}>
+              {/* <Col span={8}>
                 <Statistic title="Net Salary" value={netSalary} />
-              </Col>
+              </Col> */}
             </Row>
           </Card>
         </Col>

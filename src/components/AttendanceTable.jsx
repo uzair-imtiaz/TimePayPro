@@ -186,7 +186,6 @@ const AttendanceTable = () => {
         `${date} ${record.check_in_time}`,
         "YYYY-MM-DD HH:mm"
       );
-      debugger;
       await db.execute(
         `
         UPDATE Attendance

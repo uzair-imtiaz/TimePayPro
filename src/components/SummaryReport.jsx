@@ -37,7 +37,6 @@ const SummaryReport = () => {
         [month]
       );
 
-      // Calculate `net_salary` for each department
       const processedData = data.map((row) => ({
         ...row,
         total_net_salary:
