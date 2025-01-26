@@ -3,7 +3,10 @@ import { Table, notification, DatePicker, Button, Select, Input } from "antd";
 import { useDatabase } from "../context/DatabaseContext";
 import { departments } from "../constants/departments";
 import dayjs from "dayjs";
+import dayjsBusinessDays from "dayjs-business-days";
 import { exportToExcel, getHourlySalary, getTax } from "../utils";
+
+dayjs.extend(dayjsBusinessDays);
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -59,46 +62,34 @@ const SalaryReport = () => {
 
       console.log(data[0]);
 
-      const processedData = data.map((row) => ({
-        ...row,
-        overtime_hours_worked:
-          (row.overtime_hours_worked || 0) *
-          (row.overtime_rate || 0) *
-          (getHourlySalary(
+      const processedData = data.map((row) => {
+        const hourlySalary =
+          getHourlySalary(
             row.base_salary,
             row.working_hours,
-            dayjs(row.month).daysInMonth()
-          ) || 0),
-        short_time_amount:
-          (row.short_time || 0) *
-          (getHourlySalary(
-            row.base_salary,
-            row.working_hours,
-            dayjs(row.month).daysInMonth()
-          ) || 0),
-        tax: getTax(row.department, row.designation),
-        net_salary:
-          (row.gross_salary || 0) -
-          getTax(row.department, row.designation) -
-          (row.advance || 0) +
-          (row.allowance || 0) +
-          (row.overtime_hours_worked || 0) * 1000 -
-          (row.short_time || 0) *
-            (getHourlySalary(
-              row.base_salary,
-              row.working_hours,
-              dayjs(row.month).daysInMonth()
-            ) || 0),
-        total_deduction:
-          (row.advance || 0) +
-          (row.short_time || 0) *
-            (getHourlySalary(
-              row.base_salary,
-              row.working_hours,
-              dayjs(row.month).daysInMonth()
-            ) || 0) +
-          getTax(row.department, row.designation),
-      }));
+            dayjs(row.month).businessDaysInMonth()
+          ) || 0;
+        return {
+          ...row,
+          overtime_hours_worked:
+            (row.overtime_hours_worked || 0) *
+            (row.overtime_rate || 0) *
+            hourlySalary,
+          short_time_amount: (row.short_time || 0) * hourlySalary,
+          tax: getTax(row.department, row.designation),
+          net_salary:
+            (row.gross_salary || 0) -
+            getTax(row.department, row.designation) -
+            (row.advance || 0) +
+            (row.allowance || 0) +
+            (row.overtime_hours_worked || 0) * 1000 -
+            (row.short_time || 0) * hourlySalary,
+          total_deduction:
+            (row.advance || 0) +
+            (row.short_time || 0) * hourlySalary +
+            getTax(row.department, row.designation),
+        };
+      });
 
       setSalaryData(processedData);
       setLoading(false);
@@ -124,33 +115,6 @@ const SalaryReport = () => {
 
   const handleFilter = () => {
     fetchSalaryReport(dateRange[0], dateRange[1]);
-  };
-
-  const handlePrint = async () => {
-    try {
-      const printData = salaryData.map((row) => ({
-        "Employee ID": row.employee_id,
-        "First Name": row.first_name,
-        "Last Name": row.last_name,
-        Designation: row.designation,
-        Department: row.department,
-        "Gross Salary": row.gross_salary?.toFixed(2),
-        Tax: row.tax?.toFixed(2),
-        Advance: `-${row.advance?.toFixed(2)}`,
-        "Short Time Amount": `-${row.short_time_amount?.toFixed(2)}`,
-        Allowance: row.allowance?.toFixed(2),
-        "Overtime Amount": row.overtime_hours_worked?.toFixed(2),
-        "Total Deduction": row.total_deduction?.toFixed(2),
-        "Net Salary": row.net_salary?.toFixed(2),
-      }));
-
-      exportToExcel(printData, "Salary_Report.xlsx");
-    } catch (error) {
-      notification.error({
-        message: "Print Error",
-        description: "Failed to print the report: " + error,
-      });
-    }
   };
 
   const columns = [
@@ -266,8 +230,17 @@ const SalaryReport = () => {
         <Button type="primary" onClick={handleFilter} loading={loading}>
           Filter
         </Button>
-        <Button onClick={handlePrint} type="primary">
-          Print Report
+        <Button
+          onClick={() =>
+            exportToExcel(
+              salaryData,
+              columns,
+              `Salary_Report_${dateRange[0]}.xlsx`
+            )
+          }
+          type="primary"
+        >
+          Export Report
         </Button>
       </div>
 

@@ -600,5 +600,3 @@ const AttendanceTable = () => {
 };
 
 export default AttendanceTable;
-
-// handle holiday,

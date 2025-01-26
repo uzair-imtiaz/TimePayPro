@@ -148,7 +148,6 @@ const AddEmployeeForm = () => {
         }
 
         if (id) {
-          // Update existing employee
           const result = await db.execute(
             `UPDATE employees SET 
               first_name = $1, last_name = $2, father_name = $3, 
@@ -180,11 +179,17 @@ const AddEmployeeForm = () => {
               id,
             ]
           );
-
-          notification.success({
-            message: "Employee Updated",
-            description: "The employee was successfully updated.",
-          });
+          if (result?.lastInsertRowId) {
+            notification.success({
+              message: "Employee Updated",
+              description: "The employee was successfully updated.",
+            });
+          } else {
+            notification.error({
+              message: "Error",
+              description: "Failed to update the employee.",
+            });
+          }
         } else {
           const result = await db.execute(
             "INSERT INTO employees (first_name, last_name, father_name, cnic, phone_number, guardian_phone_number, address, department, allowance, base_salary, leaves_allotted, date_of_joining, status, picture_path, cnic_image_path, overtime_rate, working_hours, designation) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)",

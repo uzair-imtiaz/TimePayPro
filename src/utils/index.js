@@ -1,6 +1,15 @@
 import * as XLSX from "xlsx";
-import { save } from "@tauri-apps/api/dialog";
-import { writeBinaryFile } from "@tauri-apps/api/fs";
+import { invoke } from "@tauri-apps/api/core";
+import { notification } from "antd";
+
+async function saveFile(path, data) {
+  try {
+    await invoke("save_file", { fileName: path, fileData: data });
+  } catch (err) {
+    console.error("Failed to write file:", err);
+  }
+}
+
 const taxables = ["ceo", "director"];
 
 export const getTax = (department, designation = null) => {
@@ -21,32 +30,41 @@ export const getHourlySalary = (salary, working_hours, days) => {
   return salary / days / working_hours;
 };
 
-export const exportToExcel = async (data, defaultFileName = "Report.xlsx") => {
-  const filePath = await save({
-    filters: [
-      {
-        name: "Excel Files",
-        extensions: ["xlsx"],
-      },
-    ],
-    defaultPath: defaultFileName,
-  });
+export const exportToExcel = async (data, columns, fileName) => {
+  try {
+    // Extract headers and keys from columns
+    const headers = columns.map((col) => col.title);
+    const keys = columns.map((col) => col.dataIndex);
 
-  // If the user cancels the dialog, filePath will be null
-  if (!filePath) {
-    console.log("User canceled the save dialog.");
-    return;
+    // Prepare worksheet data
+    const worksheetData = [
+      headers,
+      ...data.map((item) => keys.map((key) => item[key])),
+    ];
+
+    // Create a worksheet and workbook
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+    // Generate Excel file as a binary string
+    const excelBinary = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "binary",
+    });
+
+    // Convert the binary string to a Uint8Array
+    const excelBuffer = new Uint8Array(
+      excelBinary.split("").map((char) => char.charCodeAt(0))
+    );
+
+    // Use your custom Tauri command to save the file
+    await saveFile(fileName, excelBuffer);
+
+    notification.success({
+      message: `File successfully saved as: ${fileName}`,
+    });
+  } catch (error) {
+    console.error("Failed to export Excel file:", error);
   }
-
-  // Generate workbook and convert to binary
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-
-  const binary = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
-
-  // Save the file to the selected path
-  await writeBinaryFile(filePath, binary);
-
-  console.log(`File saved at: ${filePath}`);
 };

@@ -60,7 +60,20 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 
 //     // Return the path of the generated file
 //     Ok("report.xlsx".to_string())
-// }
+//
+
+use dirs;
+use std::path::PathBuf;
+
+#[tauri::command]
+fn save_file(file_name: String, file_data: Vec<u8>) -> Result<(), String> {
+    // Save the file to the user's desktop
+    let mut path = dirs::desktop_dir().ok_or("Could not find desktop directory")?;
+    path.push(file_name);
+
+    fs::write(&path, file_data).map_err(|e| format!("Failed to save file: {}", e))?;
+    Ok(())
+}
 
 #[tauri::command]
 fn save_image(file_name: String, base64_content: String) -> Result<(), String> {
@@ -324,7 +337,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![save_image])
+        .invoke_handler(tauri::generate_handler![save_image, save_file])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
