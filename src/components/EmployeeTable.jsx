@@ -1,7 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Table, Avatar, notification, Popconfirm, Button } from "antd";
+import {
+  Table,
+  Avatar,
+  notification,
+  Popconfirm,
+  Button,
+  Flex,
+  Tooltip,
+} from "antd";
 import { useDatabase } from "../context/DatabaseContext";
-import { CheckCircleTwoTone, CloseCircleTwoTone } from "@ant-design/icons";
+import {
+  CheckCircleTwoTone,
+  CloseCircleTwoTone,
+  EditOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 const EmployeeTable = () => {
@@ -143,25 +155,36 @@ const EmployeeTable = () => {
       key: "actions",
       fixed: "right",
       render: (_, record) => (
-        <Popconfirm
-          title={`Are you sure you want to mark this employee as ${
-            record.status === "Active" ? "inactive" : "active"
-          }?`}
-          onConfirm={(e) => {
-            e.stopPropagation();
-            toggleEmployeeStatus(record.id, record.status);
-          }}
-          okText="Yes"
-          cancelText="No"
-        >
-          <Button type="link" danger onClick={(e) => e.stopPropagation()}>
-            {record.status === "Active" ? (
-              <CloseCircleTwoTone twoToneColor={"#ff4d4f"} />
-            ) : (
-              <CheckCircleTwoTone twoToneColor="#52c41a" />
-            )}
-          </Button>
-        </Popconfirm>
+        <Flex gap="0px" direction="row" onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="Edit">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`/employees/${record.id}/edit`)}
+              style={{ marginRight: 8 }}
+              size="small"
+            />
+          </Tooltip>
+          <Popconfirm
+            title={`Are you sure you want to mark this employee as ${
+              record.status === "Active" ? "inactive" : "active"
+            }?`}
+            onConfirm={(e) => {
+              e.stopPropagation();
+              toggleEmployeeStatus(record.id, record.status);
+            }}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button type="link" danger size="small">
+              {record.status === "Active" ? (
+                <CloseCircleTwoTone twoToneColor={"#ff4d4f"} />
+              ) : (
+                <CheckCircleTwoTone twoToneColor="#52c41a" />
+              )}
+            </Button>
+          </Popconfirm>
+        </Flex>
       ),
     },
   ];

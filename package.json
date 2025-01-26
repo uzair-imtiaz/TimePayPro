@@ -20,6 +20,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.1",
     "tauri-plugin-sql-api": "github:tauri-apps/tauri-plugin-sql#v1",
+    "xlsx": "^0.18.5",
     "yup": "^1.6.1"
   },
   "devDependencies": {

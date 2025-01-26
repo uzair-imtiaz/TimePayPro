@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { useDatabase } from "../context/DatabaseContext";
 import Calendar from "../components/Calender";
 import { Image } from "antd";
+import { getTax } from "../utils";
 const EmployeeDetail = () => {
   const { id } = useParams();
   const db = useDatabase();
@@ -49,7 +50,7 @@ const EmployeeDetail = () => {
           leavesUsed: summaryData.leaves_used,
           advance: summaryData.advance || 0,
           overtime: summaryData.overtime_hours_worked || 0,
-          tax: employee.base_salary >= 500000 ? base_salary * 0.2275 : 0,
+          tax: getTax(employeeData.department, employeeData.designation),
           grossSalary: summaryData.gross_salary || 0,
         });
       } catch (error) {

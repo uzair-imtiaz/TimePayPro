@@ -5,6 +5,63 @@ use std::path::Path;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use tauri_plugin_sql::{Migration, MigrationKind};
 
+// use serde_json::Value;
+// use std::fs::File;
+// use tauri::Manager;
+
+// #[tauri::command]
+// fn export_to_excel(report_data: Value) -> Result<String, String> {
+//     // Create a new workbook
+//     let mut workbook = Workbook::create("report.xlsx");
+//     let mut sheet = workbook.create_sheet("Report");
+
+//     // Configure the sheet
+//     sheet.add_column(Column { width: 30.0 }); // Adjust column width if necessary
+//     sheet.add_column(Column { width: 20.0 }); // Add more columns as needed
+
+//     // Write header row
+//     let headers = if let Some(first_row) = report_data.as_array().and_then(|arr| arr.get(0)) {
+//         first_row
+//             .as_object()
+//             .map(|obj| obj.keys().cloned().collect::<Vec<String>>())
+//             .unwrap_or_default()
+//     } else {
+//         return Err("Invalid data format: Expected an array of objects.".to_string());
+//     };
+
+//     workbook
+//         .write_sheet(&mut sheet, |sheet_writer| {
+//             let sw = sheet_writer?;
+//             sw.append_row(headers.iter().map(|h| h.as_str()))?;
+//             Ok(())
+//         })
+//         .map_err(|e| e.to_string())?;
+
+//     // Write data rows
+//     if let Value::Array(rows) = report_data {
+//         workbook
+//             .write_sheet(&mut sheet, |sheet_writer| {
+//                 let sw = sheet_writer?;
+//                 for row in rows {
+//                     if let Value::Object(row_map) = row {
+//                         let data = headers
+//                             .iter()
+//                             .map(|key| row_map.get(key).map(|v| v.to_string()).unwrap_or_default());
+//                         sw.append_row(data)?;
+//                     }
+//                 }
+//                 Ok(())
+//             })
+//             .map_err(|e| e.to_string())?;
+//     }
+
+//     // Save the workbook
+//     workbook.close().map_err(|e| e.to_string())?;
+
+//     // Return the path of the generated file
+//     Ok("report.xlsx".to_string())
+// }
+
 #[tauri::command]
 fn save_image(file_name: String, base64_content: String) -> Result<(), String> {
     let path = Path::new("images").join(file_name);

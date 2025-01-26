@@ -9,16 +9,14 @@ import {
   Typography,
   Badge,
   theme,
-  Flex,
 } from "antd";
 import dayLocaleData from "dayjs/plugin/localeData";
 dayjs.extend(dayLocaleData);
 
-const Calendar = ({ title, attendanceData }) => {
+const Calendar = ({ title, attendanceData, onMonthChange, ...rest }) => {
   const { token } = theme.useToken();
 
   const wrapperStyle = {
-    // width: 300,
     border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadiusLG,
   };
@@ -35,15 +33,13 @@ const Calendar = ({ title, attendanceData }) => {
     const isWeekend = value.day() === 0 || value.day() === 6;
 
     return (
-      <Flex
+      <div
         style={{
           padding: 8,
-          // textAlign: "center",
           borderRadius: 4,
-          // backgroundColor: isWeekend ? "#faad14" : token.colorBgContainer,
+          backgroundColor: isWeekend ? "#fafafa" : token.colorBgContainer,
+          textAlign: "center",
         }}
-        // direction="row"
-        gap="10px"
       >
         <Badge
           count={value.format("DD")}
@@ -59,13 +55,7 @@ const Calendar = ({ title, attendanceData }) => {
               : "gray"
           }
         />
-        <div
-          className={isWeekend && "weekend"}
-          style={{ marginTop: 4, fontSize: 12 }}
-        >
-          {/* {value.format("DD")} */}
-        </div>
-      </Flex>
+      </div>
     );
   };
 
@@ -74,7 +64,7 @@ const Calendar = ({ title, attendanceData }) => {
       <AntdCalendar
         fullscreen={false}
         fullCellRender={dateFullCellRender}
-        headerRender={({ value, type, onChange, onTypeChange }) => {
+        headerRender={({ value, onChange }) => {
           const start = 0;
           const end = 12;
           const monthOptions = [];
@@ -94,34 +84,30 @@ const Calendar = ({ title, attendanceData }) => {
           }
           const year = value.year();
           const month = value.month();
-          const options = [];
-          for (let i = year - 10; i < year + 10; i += 1) {
-            options.push(
+          const yearOptions = [];
+          for (let i = year - 10; i < year + 10; i++) {
+            yearOptions.push(
               <Select.Option key={i} value={i} className="year-item">
                 {i}
               </Select.Option>
             );
           }
           return (
-            <div
-              style={{
-                padding: 8,
-              }}
-            >
+            <div style={{ padding: 8 }}>
               {title && <Typography.Title level={4}>{title}</Typography.Title>}
               <Row gutter={8}>
                 <Col>
                   <Select
                     size="small"
                     popupMatchSelectWidth={false}
-                    className="my-year-select"
                     value={year}
                     onChange={(newYear) => {
                       const now = value.clone().year(newYear);
                       onChange(now);
+                      onMonthChange && onMonthChange(now); // Notify parent
                     }}
                   >
-                    {options}
+                    {yearOptions}
                   </Select>
                 </Col>
                 <Col>
@@ -132,6 +118,7 @@ const Calendar = ({ title, attendanceData }) => {
                     onChange={(newMonth) => {
                       const now = value.clone().month(newMonth);
                       onChange(now);
+                      onMonthChange && onMonthChange(now); // Notify parent
                     }}
                   >
                     {monthOptions}
@@ -141,6 +128,7 @@ const Calendar = ({ title, attendanceData }) => {
             </div>
           );
         }}
+        {...rest}
       />
     </div>
   );

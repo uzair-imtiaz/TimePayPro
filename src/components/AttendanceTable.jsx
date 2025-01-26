@@ -7,9 +7,13 @@ import {
   DatePicker,
   Space,
   TimePicker,
+  Tooltip,
+  Modal,
+  Flex,
 } from "antd";
 import { useDatabase } from "../context/DatabaseContext";
 import dayjs from "dayjs";
+import { EditOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
@@ -22,12 +26,14 @@ const AttendanceTable = () => {
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
         const data = await db.select(
-          "SELECT e.id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
+          "SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
         );
         setAttendance(data);
       } catch (error) {
@@ -79,15 +85,16 @@ const AttendanceTable = () => {
           ON CONFLICT(employee_id, date)
           DO UPDATE SET status = ?, check_in_time = NULL, check_out_time = NULL;
           `,
-          [selectedEmployee, date, status]
+          [selectedEmployee, date, status, status]
         );
 
         const employeeData = await db.select(
-          "SELECT allotted_leaves, working_hours FROM Employees WHERE id = ?",
+          "SELECT leaves_allotted, working_hours FROM Employees WHERE id = ?",
           [selectedEmployee]
         );
 
         if (!employeeData.length) {
+          console.error(error);
           notification.error({
             message: "Error",
             description: "Failed to fetch employee data.",
@@ -95,7 +102,7 @@ const AttendanceTable = () => {
           return;
         }
 
-        const allottedLeaves = employeeData[0].allotted_leaves;
+        const allottedLeaves = employeeData[0].leaves_allotted;
 
         const leaveCountData = await db.select(
           `
@@ -160,7 +167,7 @@ const AttendanceTable = () => {
       }
 
       const updatedAttendance = await db.select(
-        "SELECT a.employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
+        "SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
       );
       setAttendance(updatedAttendance);
     } catch (error) {
@@ -250,7 +257,7 @@ const AttendanceTable = () => {
       );
 
       const updatedAttendance = await db.select(
-        "SELECT a.employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
+        "SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
       );
 
       setAttendance(updatedAttendance);
@@ -268,12 +275,181 @@ const AttendanceTable = () => {
     }
   };
 
+  const handleEdit = (record) => {
+    setEditingRecord(record);
+    setStatus(record.status);
+    setCheckInTime(
+      record.check_in_time ? dayjs(record.check_in_time, "HH:mm") : null
+    );
+    setCheckOutTime(
+      record.check_out_time ? dayjs(record.check_out_time, "HH:mm") : null
+    );
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      console.log(editingRecord);
+      const currentMonth = dayjs(editingRecord.date).format("YYYY-MM");
+      const employeeData = await db.select(
+        "SELECT base_salary, overtime_rate, working_hours, leaves_allotted FROM Employees WHERE id = ?",
+        [editingRecord.employee_id]
+      );
+
+      if (!employeeData.length) {
+        notification.error({
+          message: "Error",
+          description: "Failed to fetch employee data.",
+        });
+        return;
+      }
+
+      const {
+        base_salary: baseSalary,
+        overtime_rate: overtimeRate,
+        working_hours: workingHours,
+        leaves_allotted: allottedLeaves,
+      } = employeeData[0];
+
+      // First update the attendance record
+      if (status === "Leave" || status === "Absent") {
+        await db.execute(
+          `UPDATE Attendance 
+           SET status = ?, check_in_time = NULL, check_out_time = NULL
+           WHERE id = ?`,
+          [status, editingRecord.id]
+        );
+      } else {
+        if (!checkInTime) {
+          notification.error({
+            message: "Error",
+            description: "Please select a check-in time.",
+          });
+          return;
+        }
+
+        await db.execute(
+          `UPDATE Attendance 
+           SET status = ?, 
+               check_in_time = ?,
+               check_out_time = ?
+           WHERE id = ?`,
+          [
+            status,
+            checkInTime.format("HH:mm"),
+            checkOutTime?.format("HH:mm") || null,
+            editingRecord.id,
+          ]
+        );
+      }
+
+      // Get all attendance records for the month to recalculate total salary
+      const monthlyAttendance = await db.select(
+        `SELECT * FROM Attendance 
+         WHERE employee_id = ? 
+         AND strftime('%Y-%m', date) = ?`,
+        [editingRecord.employee_id, currentMonth]
+      );
+
+      let monthlyTotalPay = 0;
+      let monthlyOvertimeHours = 0;
+      let totalLeaves = 0;
+
+      const daysInMonth = dayjs(editingRecord.date).daysInMonth();
+
+      for (const record of monthlyAttendance) {
+        if (
+          record.status === "Present" &&
+          record.check_in_time &&
+          record.check_out_time
+        ) {
+          const recordCheckIn = dayjs(record.check_in_time, "HH:mm");
+          const recordCheckOut = dayjs(record.check_out_time, "HH:mm");
+          const recordHoursWorked = recordCheckOut.diff(
+            recordCheckIn,
+            "hours",
+            true
+          );
+
+          const recordDailySalary =
+            (baseSalary / daysInMonth) *
+            Math.min(recordHoursWorked / workingHours, 1);
+          const recordOvertimeHours = Math.max(
+            recordHoursWorked - workingHours,
+            0
+          );
+          const recordOvertimePay =
+            recordOvertimeHours *
+            overtimeRate *
+            (baseSalary / daysInMonth / workingHours);
+
+          monthlyTotalPay += recordDailySalary + recordOvertimePay;
+          monthlyOvertimeHours += recordOvertimeHours;
+        } else if (record.status === "Leave" || record.status === "Absent") {
+          totalLeaves++;
+        }
+      }
+
+      const excessLeaves = Math.max(allottedLeaves - totalLeaves, 0);
+      const shortTime = excessLeaves * workingHours;
+
+      // Update or create salary record for the month
+      await db.execute(
+        `INSERT INTO Salaries (
+          employee_id, month, gross_salary, net_salary, 
+          overtime_hours_worked, leaves_used, short_time
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(employee_id, month)
+        DO UPDATE SET 
+          gross_salary = excluded.gross_salary,
+          net_salary = excluded.net_salary,
+          overtime_hours_worked = excluded.overtime_hours_worked,
+          leaves_used = excluded.leaves_used,
+          short_time = excluded.short_time`,
+        [
+          editingRecord.employee_id,
+          currentMonth,
+          monthlyTotalPay,
+          monthlyTotalPay,
+          monthlyOvertimeHours,
+          totalLeaves,
+          shortTime,
+        ]
+      );
+
+      // Refresh attendance data
+      const updatedAttendance = await db.select(
+        "SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
+      );
+      setAttendance(updatedAttendance);
+
+      notification.success({
+        message: "Success",
+        description: "Attendance record updated successfully.",
+      });
+      setIsEditModalVisible(false);
+      setEditingRecord(null);
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to update attendance record.",
+      });
+    }
+  };
+
   const columns = [
     {
       title: "Employee Name",
       dataIndex: "employee_name",
       key: "employee_name",
       render: (_, record) => `${record.first_name} ${record.last_name}`,
+    },
+    {
+      title: "Employee ID",
+      dataIndex: "employee_id",
+      key: "employee_id",
     },
     {
       title: "Date",
@@ -298,22 +474,32 @@ const AttendanceTable = () => {
     {
       title: "Actions",
       key: "actions",
-      render: (_, record) =>
-        record.check_out_time || record.status === "Leave" ? (
-          "-"
-        ) : (
-          <Space>
-            <TimePicker
-              format="HH:mm"
-              value={checkOutTime}
-              onChange={setCheckOutTime}
-              placeholder="Check-out Time"
+      render: (_, record) => (
+        <Space>
+          {record.check_out_time ||
+          record.status === "Leave" ||
+          record.status === "Absent" ? null : (
+            <>
+              <TimePicker
+                format="HH:mm"
+                value={checkOutTime}
+                onChange={setCheckOutTime}
+                placeholder="Check-out Time"
+              />
+              <Button type="primary" onClick={() => handleMarkCheckOut(record)}>
+                Mark Check-out
+              </Button>
+            </>
+          )}
+          <Tooltip title="Edit">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
             />
-            <Button type="primary" onClick={() => handleMarkCheckOut(record)}>
-              Mark Check-out
-            </Button>
-          </Space>
-        ),
+          </Tooltip>
+        </Space>
+      ),
     },
   ];
 
@@ -368,8 +554,51 @@ const AttendanceTable = () => {
           Mark Check-in
         </Button>
       </Space>
+
+      <Modal
+        title="Edit Attendance Record"
+        open={isEditModalVisible}
+        onOk={handleEditSubmit}
+        onCancel={() => {
+          setIsEditModalVisible(false);
+          setEditingRecord(null);
+        }}
+      >
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <Select
+            value={status}
+            onChange={(value) => setStatus(value)}
+            style={{ width: "100%" }}
+          >
+            <Option value="Present">Present</Option>
+            <Option value="Absent">Absent</Option>
+            <Option value="Leave">Leave</Option>
+          </Select>
+
+          {status === "Present" && (
+            <>
+              <TimePicker
+                format="HH:mm"
+                value={checkInTime}
+                onChange={setCheckInTime}
+                style={{ width: "100%" }}
+                placeholder="Check-in Time"
+              />
+              <TimePicker
+                format="HH:mm"
+                value={checkOutTime}
+                onChange={setCheckOutTime}
+                style={{ width: "100%" }}
+                placeholder="Check-out Time"
+              />
+            </>
+          )}
+        </Space>
+      </Modal>
     </div>
   );
 };
 
 export default AttendanceTable;
+
+// handle holiday,

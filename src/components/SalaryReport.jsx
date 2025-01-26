@@ -3,7 +3,7 @@ import { Table, notification, DatePicker, Button, Select, Input } from "antd";
 import { useDatabase } from "../context/DatabaseContext";
 import { departments } from "../constants/departments";
 import dayjs from "dayjs";
-import { getHourlySalary, getTax } from "../utils";
+import { exportToExcel, getHourlySalary, getTax } from "../utils";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -126,6 +126,33 @@ const SalaryReport = () => {
     fetchSalaryReport(dateRange[0], dateRange[1]);
   };
 
+  const handlePrint = async () => {
+    try {
+      const printData = salaryData.map((row) => ({
+        "Employee ID": row.employee_id,
+        "First Name": row.first_name,
+        "Last Name": row.last_name,
+        Designation: row.designation,
+        Department: row.department,
+        "Gross Salary": row.gross_salary?.toFixed(2),
+        Tax: row.tax?.toFixed(2),
+        Advance: `-${row.advance?.toFixed(2)}`,
+        "Short Time Amount": `-${row.short_time_amount?.toFixed(2)}`,
+        Allowance: row.allowance?.toFixed(2),
+        "Overtime Amount": row.overtime_hours_worked?.toFixed(2),
+        "Total Deduction": row.total_deduction?.toFixed(2),
+        "Net Salary": row.net_salary?.toFixed(2),
+      }));
+
+      exportToExcel(printData, "Salary_Report.xlsx");
+    } catch (error) {
+      notification.error({
+        message: "Print Error",
+        description: "Failed to print the report: " + error,
+      });
+    }
+  };
+
   const columns = [
     {
       title: "Employee ID",
@@ -238,6 +265,9 @@ const SalaryReport = () => {
 
         <Button type="primary" onClick={handleFilter} loading={loading}>
           Filter
+        </Button>
+        <Button onClick={handlePrint} type="primary">
+          Print Report
         </Button>
       </div>
 

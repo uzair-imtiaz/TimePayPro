@@ -35,6 +35,7 @@ function App() {
               <Route path="/employees/:id" element={<EmployeeDetail />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/advance" element={<AddAdvance />} />
+              <Route path="/employees/:id/edit" element={<AddEmployee />} />
               {/* <Route path="*" element={<Navigate to="/dashboard" />} /> */}
             </Routes>
           </Sidebar>
