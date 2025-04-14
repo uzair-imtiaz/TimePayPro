@@ -82,7 +82,9 @@ const SalaryReport = () => {
             getTax(row.department, row.designation) -
             (row.advance || 0) +
             (row.allowance || 0) +
-            (row.overtime_hours_worked || 0) * 1000 -
+            (row.overtime_hours_worked || 0) *
+              (row.overtime_rate || 0) *
+              hourlySalary -
             (row.short_time || 0) * hourlySalary,
           total_deduction:
             (row.advance || 0) +

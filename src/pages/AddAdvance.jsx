@@ -88,7 +88,7 @@ const AddAdvance = () => {
           <Select placeholder="Select an employee">
             {employees.map((employee) => (
               <Option key={employee.id} value={employee.id}>
-                {employee.first_name} {employee.last_name}
+                {employee.first_name} {employee.last_name} ({employee.id})
               </Option>
             ))}
           </Select>

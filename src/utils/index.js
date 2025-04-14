@@ -2,17 +2,19 @@ import * as XLSX from "xlsx";
 import { invoke } from "@tauri-apps/api/core";
 import { notification } from "antd";
 
-async function saveFile(path, data) {
+export async function saveFile(path, data) {
   try {
     await invoke("save_file", { fileName: path, fileData: data });
   } catch (err) {
     console.error("Failed to write file:", err);
+    notification.error("Error saving file");
   }
 }
 
 const taxables = ["ceo", "director"];
 
-export const getTax = (department, designation = null) => {
+export const getTax = (department="", designation = null) => {
+  debugger
   const lowerCaseDepartment = department.toLowerCase();
   if (!designation && lowerCaseDepartment === "bank") {
     return 4 * 113750;

@@ -15,6 +15,7 @@ import AttendanceTable from "./components/AttendanceTable";
 import EmployeeDetail from "./pages/EmployeeDetail";
 import ReportsPage from "./components/Reports";
 import AddAdvance from "./pages/AddAdvance";
+import SalarySlip from "./pages/SalarySlip";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -36,6 +37,7 @@ function App() {
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/advance" element={<AddAdvance />} />
               <Route path="/employees/:id/edit" element={<AddEmployee />} />
+              <Route path="/salary-slip" element={<SalarySlip />} />
               {/* <Route path="*" element={<Navigate to="/dashboard" />} /> */}
             </Routes>
           </Sidebar>

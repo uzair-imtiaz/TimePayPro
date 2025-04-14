@@ -5,6 +5,18 @@ import { useDatabase } from "../context/DatabaseContext";
 import Calendar from "../components/Calender";
 import { Image } from "antd";
 import { getTax } from "../utils";
+import { desktopDir } from "@tauri-apps/api/path";
+
+async function getImagePath(imageName) {
+  try {
+    const desktopDi = await desktopDir();
+    console.log("desktopDir", desktopDi);
+    const imagePath = `${desktopDi}/${imageName}`;
+    return imagePath;
+  } catch (err) {
+    console.error("Failed to resolve image path:", err);
+  }
+}
 const EmployeeDetail = () => {
   const { id } = useParams();
   const db = useDatabase();
@@ -17,6 +29,8 @@ const EmployeeDetail = () => {
     overtime: 0,
     netSalary: 0,
   });
+  const [picturePath, setPicturePath] = useState(null);
+  const [cnicImagePath, setCnicImagePath] = useState(null);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -53,6 +67,9 @@ const EmployeeDetail = () => {
           tax: getTax(employeeData.department, employeeData.designation),
           grossSalary: summaryData.gross_salary || 0,
         });
+
+        setPicturePath(await getImagePath(employeeData.picture_path));
+        setCnicImagePath(employeeData.cnic_image_path);
       } catch (error) {
         console.error("Error fetching employee details:", error);
       }
@@ -65,6 +82,7 @@ const EmployeeDetail = () => {
     return <div>Loading...</div>;
   }
 
+  console.log("picturePath", picturePath);
   const netSalary =
     (summary.grossSalary ?? 0) -
     (summary.tax ?? 0) -
@@ -112,7 +130,10 @@ const EmployeeDetail = () => {
                 <Statistic title="Advance" value={`${summary.advance}`} />
               </Col>
               <Col span={8}>
-                <Statistic title="Overtime Hours" value={summary.overtime} />
+                <Statistic
+                  title="Overtime Hours"
+                  value={summary.overtime?.toFixed(2)}
+                />
               </Col>
               <Col span={8}>
                 <Statistic title="Allowance" value={`${employee.allowance}`} />
@@ -135,14 +156,14 @@ const EmployeeDetail = () => {
             <Calendar attendanceData={attendance} />
           </Card>
         </Col>
-        <Col span={12}>
+        {/* <Col span={12}>
           <Card title="Documents" bordered>
             <Row gutter={[16, 16]}>
               {employee.picture_path && (
                 <Col span={12}>
                   <h4>Profile Picture</h4>
                   <Image
-                    src={`../../src-tauri/${employee.picture_path}`}
+                    src={picturePath}
                     alt="Employee Profile"
                     style={{
                       width: "100%",
@@ -168,7 +189,7 @@ const EmployeeDetail = () => {
               )}
             </Row>
           </Card>
-        </Col>
+        </Col> */}
       </Row>
     </div>
   );

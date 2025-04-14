@@ -37,6 +37,9 @@ const Sidebar = ({ children }) => {
           <Menu.Item key="5" icon={<DollarCircleOutlined />}>
             <Link to="/advance">Advance</Link>
           </Menu.Item>
+          <Menu.Item key="6" icon={<DollarCircleOutlined />}>
+            <Link to="/salary-slip">Salary Slip</Link>
+          </Menu.Item>
         </Menu>
       </Sider>
       <Layout style={{ padding: "0 0px 10px 10px" }}>

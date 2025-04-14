@@ -62,21 +62,21 @@ const EmployeeTable = () => {
   };
 
   const columns = [
-    {
-      title: "Avatar",
-      dataIndex: "picture_path",
-      key: "picture_path",
-      render: (text) =>
-        text ? (
-          <Avatar
-            src={`../../src-tauri/${text}`}
-            alt="Avatar"
-            style={{ width: 40, height: 40 }}
-          />
-        ) : (
-          <Avatar style={{ backgroundColor: "#bb2025" }}>N/A</Avatar>
-        ),
-    },
+    // {
+    //   title: "Avatar",
+    //   dataIndex: "picture_path",
+    //   key: "picture_path",
+    //   render: (text) =>
+    //     text ? (
+    //       <Avatar
+    //         src={`../../src-tauri/${text}`}
+    //         alt="Avatar"
+    //         style={{ width: 40, height: 40 }}
+    //       />
+    //     ) : (
+    //       <Avatar style={{ backgroundColor: "#bb2025" }}>N/A</Avatar>
+    //     ),
+    // },
     {
       title: "ID",
       dataIndex: "id",
@@ -102,21 +102,21 @@ const EmployeeTable = () => {
       dataIndex: "cnic",
       key: "cnic",
     },
-    {
-      title: "CNIC Image",
-      dataIndex: "cnic_image_path",
-      key: "cnic_image_path",
-      render: (text) =>
-        text ? (
-          <Avatar
-            src={`../../src-tauri/${text}`}
-            alt="CNIC"
-            // style={{ width: 40, height: 40 }}
-          />
-        ) : (
-          <Avatar style={{ backgroundColor: "#bb2025" }}>N/A</Avatar>
-        ),
-    },
+    // {
+    //   title: "CNIC Image",
+    //   dataIndex: "cnic_image_path",
+    //   key: "cnic_image_path",
+    //   render: (text) =>
+    //     text ? (
+    //       <Avatar
+    //         src={`../../src-tauri/${text}`}
+    //         alt="CNIC"
+    //         // style={{ width: 40, height: 40 }}
+    //       />
+    //     ) : (
+    //       <Avatar style={{ backgroundColor: "#bb2025" }}>N/A</Avatar>
+    //     ),
+    // },
     {
       title: "Phone Number",
       dataIndex: "phone_number",

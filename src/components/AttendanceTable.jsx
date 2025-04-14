@@ -1,19 +1,18 @@
-import React, { useEffect, useState } from "react";
+import { EditOutlined } from "@ant-design/icons";
 import {
-  Table,
   Button,
+  DatePicker,
+  Modal,
   notification,
   Select,
-  DatePicker,
   Space,
+  Table,
   TimePicker,
   Tooltip,
-  Modal,
-  Flex,
 } from "antd";
-import { useDatabase } from "../context/DatabaseContext";
 import dayjs from "dayjs";
-import { EditOutlined } from "@ant-design/icons";
+import React, { useEffect, useState } from "react";
+import { useDatabase } from "../context/DatabaseContext";
 
 const { Option } = Select;
 
@@ -28,23 +27,45 @@ const AttendanceTable = () => {
   const [checkOutTime, setCheckOutTime] = useState(null);
   const [editingRecord, setEditingRecord] = useState(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 2,
+    total: 0,
+  });
+
+  const fetchAttendance = async (page = 1, pageSize = 2) => {
+    try {
+      setLoading(true);
+      const offset = (page - 1) * pageSize;
+      const data = await db.select(
+        `SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time 
+        FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id order by a.date desc
+        LIMIT ? OFFSET ?`,
+        [pageSize, offset]
+      );
+      const total = await db.select(
+        "SELECT COUNT(*) AS total FROM Attendance;"
+      );
+      setAttendance(data);
+      setPagination((prev) => ({
+        ...prev,
+        total: total[0]?.total || 0,
+        current: page,
+        pageSize,
+      }));
+    } catch (error) {
+      console.error("Error fetching attendance data:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to load attendance data.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAttendance = async () => {
-      try {
-        const data = await db.select(
-          "SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
-        );
-        setAttendance(data);
-      } catch (error) {
-        console.error("Error fetching attendance data:", error);
-        notification.error({
-          message: "Error",
-          description: "Failed to load attendance data.",
-        });
-      }
-    };
-
     const fetchEmployees = async () => {
       try {
         const employeesData = await db.select(
@@ -54,7 +75,7 @@ const AttendanceTable = () => {
           employeesData.map((emp) => {
             return {
               value: emp.id,
-              label: `${emp.first_name} ${emp.last_name}`,
+              label: `${emp.first_name} ${emp.last_name} (${emp.id})`,
             };
           })
         );
@@ -63,7 +84,7 @@ const AttendanceTable = () => {
       }
     };
 
-    fetchAttendance();
+    fetchAttendance(pagination.current, pagination.pageSize);
     fetchEmployees();
   }, []);
 
@@ -115,9 +136,8 @@ const AttendanceTable = () => {
 
         const totalLeaves = leaveCountData[0].totalLeaves;
 
-        const excessLeaves = Math.max(allottedLeaves - totalLeaves, 0);
+        const excessLeaves = Math.max(totalLeaves - allottedLeaves, 0);
         const shortTime = excessLeaves * employeeData[0].working_hours;
-
         await db.execute(
           `
           INSERT INTO Salaries (employee_id, month, leaves_used, gross_salary, net_salary, short_time)
@@ -166,10 +186,7 @@ const AttendanceTable = () => {
         });
       }
 
-      const updatedAttendance = await db.select(
-        "SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
-      );
-      setAttendance(updatedAttendance);
+      await fetchAttendance();
     } catch (error) {
       console.error("Error marking attendance:", error);
       notification.error({
@@ -226,13 +243,12 @@ const AttendanceTable = () => {
         "hours",
         true
       );
-      debugger;
+
       const currentMonth = dayjs(record.date).format("YYYY-MM");
       const daysInMonth = dayjs(record.date).daysInMonth();
 
       const dailySalary =
         (baseSalary / daysInMonth) * Math.min(hoursWorked / workingHours, 1);
-      debugger;
 
       const overtimeHours =
         Math.round(Math.max(hoursWorked - 10, 0) * 100) / 100;
@@ -256,11 +272,7 @@ const AttendanceTable = () => {
         [record.employee_id, currentMonth, totalPay, totalPay, overtimeHours]
       );
 
-      const updatedAttendance = await db.select(
-        "SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
-      );
-
-      setAttendance(updatedAttendance);
+      await fetchAttendance(pagination.current, pagination.pageSize);
 
       notification.success({
         message: "Success",
@@ -390,7 +402,7 @@ const AttendanceTable = () => {
         }
       }
 
-      const excessLeaves = Math.max(allottedLeaves - totalLeaves, 0);
+      const excessLeaves = Math.max(totalLeaves - allottedLeaves, 0);
       const shortTime = excessLeaves * workingHours;
 
       // Update or create salary record for the month
@@ -418,11 +430,7 @@ const AttendanceTable = () => {
         ]
       );
 
-      // Refresh attendance data
-      const updatedAttendance = await db.select(
-        "SELECT e.id as employee_id, a.id, e.first_name, e.last_name, a.date, a.status, a.check_in_time, a.check_out_time FROM Attendance a INNER JOIN Employees e ON a.employee_id = e.id"
-      );
-      setAttendance(updatedAttendance);
+      await fetchAttendance(pagination.current);
 
       notification.success({
         message: "Success",
@@ -503,16 +511,12 @@ const AttendanceTable = () => {
     },
   ];
 
+  const handleTableChange = (pagination) => {
+    fetchAttendance(pagination.current, pagination.pageSize);
+  };
+
   return (
     <div>
-      <h2>Attendance Table</h2>
-      <Table
-        columns={columns}
-        dataSource={attendance}
-        rowKey="id"
-        pagination={false}
-        style={{ marginBottom: 20, overflow: "auto" }}
-      />
       <h3>Mark Check-in</h3>
       <Space direction="vertical" size="large" style={{ display: "flex" }}>
         <Select
@@ -524,6 +528,7 @@ const AttendanceTable = () => {
           single
           multiple={false}
           options={employees}
+          disabled={loading}
           filterOption={(input, option) =>
             option.label.toLowerCase().includes(input.toLowerCase())
           }
@@ -533,11 +538,13 @@ const AttendanceTable = () => {
           onChange={(date) => setDate(date?.format("YYYY-MM-DD"))}
           format="YYYY-MM-DD"
           style={{ width: "25%" }}
+          disabled={loading}
         />
         <Select
           value={status}
           onChange={(value) => setStatus(value)}
           style={{ width: "25%" }}
+          disabled={loading}
         >
           <Option value="Present">Present</Option>
           <Option value="Absent">Absent</Option>
@@ -549,52 +556,66 @@ const AttendanceTable = () => {
           onChange={setCheckInTime}
           style={{ width: "25%" }}
           placeholder="Check-in Time"
+          disabled={loading}
         />
-        <Button type="primary" onClick={handleMarkCheckIn}>
+        <Button type="primary" onClick={handleMarkCheckIn} disabled={loading}>
           Mark Check-in
         </Button>
       </Space>
 
-      <Modal
-        title="Edit Attendance Record"
-        open={isEditModalVisible}
-        onOk={handleEditSubmit}
-        onCancel={() => {
-          setIsEditModalVisible(false);
-          setEditingRecord(null);
-        }}
-      >
-        <Space direction="vertical" style={{ width: "100%" }}>
-          <Select
-            value={status}
-            onChange={(value) => setStatus(value)}
-            style={{ width: "100%" }}
-          >
-            <Option value="Present">Present</Option>
-            <Option value="Absent">Absent</Option>
-            <Option value="Leave">Leave</Option>
-          </Select>
+      <h2>Attendance Table</h2>
+      <Table
+        columns={columns}
+        dataSource={attendance}
+        rowKey="id"
+        pagination={pagination}
+        onChange={handleTableChange}
+        style={{ marginBottom: 20, overflow: "auto" }}
+        loading={loading}
+      />
 
-          {status === "Present" && (
-            <>
-              <TimePicker
-                format="HH:mm"
-                value={checkInTime}
-                onChange={setCheckInTime}
-                style={{ width: "100%" }}
-                placeholder="Check-in Time"
-              />
-              <TimePicker
-                format="HH:mm"
-                value={checkOutTime}
-                onChange={setCheckOutTime}
-                style={{ width: "100%" }}
-                placeholder="Check-out Time"
-              />
-            </>
-          )}
-        </Space>
-      </Modal>
+      {isEditModalVisible && (
+        <Modal
+          title="Edit Attendance Record"
+          open={isEditModalVisible}
+          onOk={handleEditSubmit}
+          onCancel={() => {
+            setIsEditModalVisible(false);
+            setEditingRecord(null);
+          }}
+        >
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Select
+              value={status}
+              onChange={(value) => setStatus(value)}
+              style={{ width: "100%" }}
+            >
+              <Option value="Present">Present</Option>
+              <Option value="Absent">Absent</Option>
+              <Option value="Leave">Leave</Option>
+            </Select>
+
+            {status === "Present" && (
+              <>
+                <TimePicker
+                  format="HH:mm"
+                  value={checkInTime}
+                  onChange={setCheckInTime}
+                  style={{ width: "100%" }}
+                  placeholder="Check-in Time"
+                />
+                <TimePicker
+                  format="HH:mm"
+                  value={checkOutTime}
+                  onChange={setCheckOutTime}
+                  style={{ width: "100%" }}
+                  placeholder="Check-out Time"
+                />
+              </>
+            )}
+          </Space>
+        </Modal>
+      )}
     </div>
   );
 };

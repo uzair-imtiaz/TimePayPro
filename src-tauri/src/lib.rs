@@ -1,7 +1,9 @@
 use base64::{engine::general_purpose, Engine};
+use printpdf::*;
 use std::fs;
+use std::fs::File;
+use std::io::BufWriter;
 use std::io::Write;
-use std::path::Path;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use tauri_plugin_sql::{Migration, MigrationKind};
 
@@ -63,12 +65,11 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 //
 
 use dirs;
-use std::path::PathBuf;
 
 #[tauri::command]
 fn save_file(file_name: String, file_data: Vec<u8>) -> Result<(), String> {
     // Save the file to the user's desktop
-    let mut path = dirs::desktop_dir().ok_or("Could not find desktop directory")?;
+    let mut path = dirs::download_dir().ok_or("Could not find desktop directory")?;
     path.push(file_name);
 
     fs::write(&path, file_data).map_err(|e| format!("Failed to save file: {}", e))?;
@@ -77,7 +78,9 @@ fn save_file(file_name: String, file_data: Vec<u8>) -> Result<(), String> {
 
 #[tauri::command]
 fn save_image(file_name: String, base64_content: String) -> Result<(), String> {
-    let path = Path::new("images").join(file_name);
+    let mut path = dirs::desktop_dir().ok_or("Could not find desktop directory")?;
+    path.push("images");
+    path.push(file_name);
 
     // Decode the Base64 content
     let decoded_content = general_purpose::STANDARD
@@ -337,7 +340,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![save_image, save_file])
+        .invoke_handler(tauri::generate_handler![save_image, save_file,])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
