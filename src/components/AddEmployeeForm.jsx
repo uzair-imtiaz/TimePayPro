@@ -80,41 +80,41 @@ const AddEmployeeForm = () => {
       designation: "",
     },
 
-    validationSchema: Yup.object({
-      firstName: Yup.string().required("Please input the first name!"),
-      lastName: Yup.string().required("Please input the last name!"),
-      fatherName: Yup.string().required("Please input the father's name!"),
-      cnic: Yup.string()
-        .matches(/^\d{13}$/, "CNIC must be exactly 13 digits")
-        .required("Please input the CNIC!"),
-      phoneNumber: Yup.string()
-        .matches(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits")
-        .required("Please input the phone number!"),
-      guardianPhoneNumber: Yup.string()
-        .matches(
-          /^\d{10,15}$/,
-          "Guardian phone number must be between 10 and 15 digits"
-        )
-        .required("Please input the guardian's phone number!"),
-      address: Yup.string().required("Please input the address!"),
-      department: Yup.string().required("Please select a department!"),
-      allowance: Yup.number()
-        .min(0, "Allowance cannot be negative")
-        .required("Please input the allowance!"),
-      baseSalary: Yup.number()
-        .min(0, "Base salary cannot be negative")
-        .required("Please input the base salary!"),
-      leavesAllotted: Yup.number()
-        .min(0, "Leaves allotted cannot be negative")
-        .required("Please input the number of leaves allotted!"),
-      overtimeRate: Yup.number()
-        .min(0, "Overtime rate cannot be negative")
-        .required("Please input the overtime rate!"),
-      workingHours: Yup.number()
-        .min(0, "Working hours cannot be negative")
-        .required("Please input the working hours!"),
-      designation: Yup.string().required("Please input the designation!"),
-    }),
+    // validationSchema: Yup.object({
+    //   firstName: Yup.string().required("Please input the first name!"),
+    //   lastName: Yup.string().required("Please input the last name!"),
+    //   fatherName: Yup.string().required("Please input the father's name!"),
+    //   cnic: Yup.string()
+    //     .matches(/^\d{13}$/, "CNIC must be exactly 13 digits")
+    //     .required("Please input the CNIC!"),
+    //   phoneNumber: Yup.string()
+    //     .matches(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits")
+    //     .required("Please input the phone number!"),
+    //   guardianPhoneNumber: Yup.string()
+    //     .matches(
+    //       /^\d{10,15}$/,
+    //       "Guardian phone number must be between 10 and 15 digits"
+    //     )
+    //     .required("Please input the guardian's phone number!"),
+    //   address: Yup.string().required("Please input the address!"),
+    //   department: Yup.string().required("Please select a department!"),
+    //   allowance: Yup.number()
+    //     .min(0, "Allowance cannot be negative")
+    //     .required("Please input the allowance!"),
+    //   baseSalary: Yup.number()
+    //     .min(0, "Base salary cannot be negative")
+    //     .required("Please input the base salary!"),
+    //   leavesAllotted: Yup.number()
+    //     .min(0, "Leaves allotted cannot be negative")
+    //     .required("Please input the number of leaves allotted!"),
+    //   overtimeRate: Yup.number()
+    //     .min(0, "Overtime rate cannot be negative")
+    //     .required("Please input the overtime rate!"),
+    //   workingHours: Yup.number()
+    //     .min(0, "Working hours cannot be negative")
+    //     .required("Please input the working hours!"),
+    //   designation: Yup.string().required("Please input the designation!"),
+    // }),
 
     onSubmit: async (values, { resetForm }) => {
       try {

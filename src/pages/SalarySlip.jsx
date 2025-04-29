@@ -10,7 +10,6 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 import { getHourlySalary, getTax, saveFile } from "../utils";
-import { fs } from '@tauri-apps/api';
 import { useDatabase } from "../context/DatabaseContext";
 import dayjs from "dayjs";
 
@@ -137,9 +136,9 @@ const SalarySlip = () => {
 
       const hourlySalary =
         getHourlySalary(
-          employeeData?.base_salary,
+          employeeData?.base_salary + employeeData?.allowance,
           employeeData?.working_hours,
-          dayjs(employeeData?.month).businessDaysInMonth().length
+          employeeData?.month
         ) || 0;
 
       employeeData.totalDeduction =

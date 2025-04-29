@@ -13,6 +13,7 @@ import {
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
 import { useDatabase } from "../context/DatabaseContext";
+import { countWorkingDays, getHourlySalary } from "../utils";
 
 const { Option } = Select;
 
@@ -30,11 +31,11 @@ const AttendanceTable = () => {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 2,
+    pageSize: 10,
     total: 0,
   });
 
-  const fetchAttendance = async (page = 1, pageSize = 2) => {
+  const fetchAttendance = async (page = 1, pageSize = 10) => {
     try {
       setLoading(true);
       const offset = (page - 1) * pageSize;
@@ -220,7 +221,7 @@ const AttendanceTable = () => {
       );
 
       const employeeData = await db.select(
-        "SELECT base_salary, overtime_rate, working_hours FROM Employees WHERE id = ?",
+        "SELECT base_salary, overtime_rate, working_hours, allowance FROM Employees WHERE id = ?",
         [record.employee_id]
       );
 
@@ -236,6 +237,7 @@ const AttendanceTable = () => {
         base_salary: baseSalary,
         overtime_rate: overtimeRate,
         working_hours: workingHours,
+        allowance,
       } = employeeData[0];
 
       const hoursWorked = dayjs(checkOutTime).diff(
@@ -244,32 +246,66 @@ const AttendanceTable = () => {
         true
       );
 
+      if (hoursWorked < 0) {
+        hoursWorked += 24;
+      }
+
       const currentMonth = dayjs(record.date).format("YYYY-MM");
-      const daysInMonth = dayjs(record.date).daysInMonth();
 
       const dailySalary =
-        (baseSalary / daysInMonth) * Math.min(hoursWorked / workingHours, 1);
+        (baseSalary + allowance) /
+        (workingHours === 24
+          ? dayjs(currentMonth).daysInMonth()
+          : countWorkingDays(currentMonth));
+
+      console.log(
+        "Math.min(hoursWorked / workingHours, 1);",
+        Math.min(hoursWorked / workingHours, 1)
+      );
+
+      console.log("dailySalary", dailySalary);
 
       const overtimeHours =
-        Math.round(Math.max(hoursWorked - 10, 0) * 100) / 100;
+        Math.round(Math.max(hoursWorked - workingHours, 0) * 100) / 100;
+
+      const shortTime =
+        Math.round(Math.max(workingHours - hoursWorked, 0) * 100) / 100;
+
       const overtimePay =
         overtimeHours *
         overtimeRate *
-        (baseSalary / daysInMonth / workingHours);
+        getHourlySalary(baseSalary, workingHours, currentMonth);
 
-      const totalPay = dailySalary + overtimePay;
+      const shortTimeDeduction =
+        Math.min(hoursWorked / workingHours, 1) * dailySalary;
 
+      console.log("shortTime", shortTime);
+      console.log("shortTimeDeduction", shortTimeDeduction);
+
+      const totalPay =
+        shortTime > 0
+          ? dailySalary - shortTimeDeduction
+          : dailySalary + overtimePay;
+      // need to calc short time
       await db.execute(
         `
-        INSERT INTO Salaries (employee_id, month, gross_salary, net_salary, overtime_hours_worked)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO Salaries (employee_id, month, gross_salary, net_salary, overtime_hours_worked, short_time)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(employee_id, month)
         DO UPDATE SET
-          gross_salary = gross_salary + excluded.gross_salary,
-          net_salary = net_salary + excluded.net_salary,
-          overtime_hours_worked = overtime_hours_worked + excluded.overtime_hours_worked;
+          gross_salary = excluded.gross_salary,
+          net_salary = excluded.net_salary,
+          overtime_hours_worked = excluded.overtime_hours_worked,
+          short_time = excluded.short_time;
         `,
-        [record.employee_id, currentMonth, totalPay, totalPay, overtimeHours]
+        [
+          record.employee_id,
+          currentMonth,
+          dailySalary,
+          totalPay,
+          overtimeHours,
+          shortTime,
+        ]
       );
 
       await fetchAttendance(pagination.current, pagination.pageSize);
@@ -301,6 +337,7 @@ const AttendanceTable = () => {
 
   const handleEditSubmit = async () => {
     try {
+      // find some way to add the encashed laves ./
       console.log(editingRecord);
       const currentMonth = dayjs(editingRecord.date).format("YYYY-MM");
       const employeeData = await db.select(
@@ -363,6 +400,8 @@ const AttendanceTable = () => {
         [editingRecord.employee_id, currentMonth]
       );
 
+      console.log('monthlyAttendance', monthlyAttendance)
+
       let monthlyTotalPay = 0;
       let monthlyOvertimeHours = 0;
       let totalLeaves = 0;
@@ -377,27 +416,38 @@ const AttendanceTable = () => {
         ) {
           const recordCheckIn = dayjs(record.check_in_time, "HH:mm");
           const recordCheckOut = dayjs(record.check_out_time, "HH:mm");
-          const recordHoursWorked = recordCheckOut.diff(
+          // Handle potential negative time difference (if check-out is before check-in on 24h format)
+          let recordHoursWorked = recordCheckOut.diff(
             recordCheckIn,
             "hours",
             true
           );
+          if (recordHoursWorked < 0) {
+            // Assume checkout is next day if negative hours
+            recordHoursWorked += 24;
+          }
 
+          // Calculate base pay (capped at regular working hours)
+          const workingDaysCount =
+            workingHours === 24 ? daysInMonth : countWorkingDays(currentMonth);
           const recordDailySalary =
-            (baseSalary / daysInMonth) *
-            Math.min(recordHoursWorked / workingHours, 1);
-          const recordOvertimeHours = Math.max(
-            recordHoursWorked - workingHours,
-            0
+            (baseSalary / workingDaysCount)
+            // * Math.min(recordHoursWorked / workingHours, 1);
+
+            const recordOvertimeHours =
+            Math.round(Math.max(recordHoursWorked - workingHours, 0) * 100) / 100;
+
+          const hourlyRate = getHourlySalary(
+            baseSalary,
+            workingHours,
+            currentMonth
           );
           const recordOvertimePay =
-            recordOvertimeHours *
-            overtimeRate *
-            (baseSalary / daysInMonth / workingHours);
+            recordOvertimeHours * overtimeRate * hourlyRate;
 
           monthlyTotalPay += recordDailySalary + recordOvertimePay;
           monthlyOvertimeHours += recordOvertimeHours;
-        } else if (record.status === "Leave" || record.status === "Absent") {
+        } else if (record.status === "Leave") {
           totalLeaves++;
         }
       }
@@ -585,6 +635,13 @@ const AttendanceTable = () => {
           }}
         >
           <Space direction="vertical" style={{ width: "100%" }}>
+            <DatePicker
+              value={dayjs(date)}
+              onChange={(date) => setDate(date?.format("YYYY-MM-DD"))}
+              format="YYYY-MM-DD"
+              style={{ width: "50%" }}
+              disabled={loading}
+            />
             <Select
               value={status}
               onChange={(value) => setStatus(value)}

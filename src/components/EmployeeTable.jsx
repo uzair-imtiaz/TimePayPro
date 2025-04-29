@@ -61,6 +61,8 @@ const EmployeeTable = () => {
     }
   };
 
+  console.log('employees', employees)
+
   const columns = [
     // {
     //   title: "Avatar",
@@ -101,6 +103,7 @@ const EmployeeTable = () => {
       title: "CNIC",
       dataIndex: "cnic",
       key: "cnic",
+      render: (text) => (text ? `${text}` : "-"),
     },
     // {
     //   title: "CNIC Image",
@@ -121,22 +124,18 @@ const EmployeeTable = () => {
       title: "Phone Number",
       dataIndex: "phone_number",
       key: "phone_number",
+      render: (text) => (text ? `${text}` : "-"),
     },
     {
       title: "Address",
       dataIndex: "address",
       key: "address",
+      render: (text) => (text ? `${text}` : "-"),
     },
     {
       title: "Department",
       dataIndex: "department",
       key: "department",
-    },
-    {
-      title: "Hourly Rate",
-      dataIndex: "hourly_rate",
-      key: "hourly_rate",
-      render: (text) => (text ? `${text}` : "-"),
     },
     {
       title: "Base Salary",
@@ -145,9 +144,9 @@ const EmployeeTable = () => {
       render: (text) => (text ? `${text}` : "-"),
     },
     {
-      title: "Allowances",
-      dataIndex: "allowances",
-      key: "allowances",
+      title: "Allowance",
+      dataIndex: "allowance",
+      key: "allowance",
       render: (text) => (text ? `${text}` : "-"),
     },
     {

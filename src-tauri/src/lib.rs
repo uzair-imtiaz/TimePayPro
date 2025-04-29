@@ -331,6 +331,14 @@ pub fn run() {
             ",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 12,
+            description: "add_leave_encashment_to_salaries",
+            sql: "
+            ALTER TABLE Salaries ADD COLUMN leave_encashment_amount REAL DEFAULT 0;
+            ",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

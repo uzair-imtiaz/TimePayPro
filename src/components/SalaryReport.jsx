@@ -3,10 +3,8 @@ import { Table, notification, DatePicker, Button, Select, Input } from "antd";
 import { useDatabase } from "../context/DatabaseContext";
 import { departments } from "../constants/departments";
 import dayjs from "dayjs";
-import dayjsBusinessDays from "dayjs-business-days";
 import { exportToExcel, getHourlySalary, getTax } from "../utils";
 
-dayjs.extend(dayjsBusinessDays);
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -60,15 +58,17 @@ const SalaryReport = () => {
         ]
       );
 
-      console.log(data[0]);
+      console.log(data);
 
       const processedData = data.map((row) => {
+
         const hourlySalary =
           getHourlySalary(
-            row.base_salary,
+            row.base_salary + (row.allowance || 0),
             row.working_hours,
-            dayjs(row.month).businessDaysInMonth()
+            row.month
           ) || 0;
+        console.log("hourlySalary", hourlySalary);
         return {
           ...row,
           overtime_hours_worked:
@@ -81,7 +81,7 @@ const SalaryReport = () => {
             (row.gross_salary || 0) -
             getTax(row.department, row.designation) -
             (row.advance || 0) +
-            (row.allowance || 0) +
+            // (row.allowance || 0) +
             (row.overtime_hours_worked || 0) *
               (row.overtime_rate || 0) *
               hourlySalary -

@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { invoke } from "@tauri-apps/api/core";
 import { notification } from "antd";
+import dayjs from "dayjs";
 
 export async function saveFile(path, data) {
   try {
@@ -11,10 +12,50 @@ export async function saveFile(path, data) {
   }
 }
 
+export const runLeaveEncashmentBatch = async (month, db) => {
+
+  const encashmentQuery = `
+    SELECT 
+      e.id AS employee_id,
+      e.base_salary,
+      e.leaves_allotted,
+      IFNULL(s.leaves_used, 0) AS leaves_used,
+      (e.leaves_allotted - IFNULL(s.leaves_used, 0)) AS remaining_leaves,
+    FROM Employees e
+    LEFT JOIN Salaries s ON e.id = s.employee_id AND s.month = ?
+    WHERE e.status = 'Active'
+  `;
+
+  const results = await db.select(encashmentQuery, [month]);
+
+  for (const employee of results) {
+    if (employee.remaining_leaves > 0) {
+      const encashmentAmount = (employee.base_salary / countWorkingDays(month)) * employee.remaining_leaves;
+      const updateSalaryQuery = `
+        UPDATE Salaries
+        SET 
+          leave_encashment = ?,
+          net_salary = net_salary + ?
+        WHERE employee_id = ? AND month = ?
+      `;
+
+      await db.execute(updateSalaryQuery, [
+        encashmentAmount,
+        encashmentAmount,
+        employee.employee_id,
+        month,
+      ]);
+    }
+  }
+
+  console.log("Leave encashment batch completed.");
+};
+
+
 const taxables = ["ceo", "director"];
 
-export const getTax = (department="", designation = null) => {
-  debugger
+export const getTax = (department = "", designation = null) => {
+  debugger;
   const lowerCaseDepartment = department.toLowerCase();
   if (!designation && lowerCaseDepartment === "bank") {
     return 4 * 113750;
@@ -28,9 +69,27 @@ export const getTax = (department="", designation = null) => {
   return 0;
 };
 
-export const getHourlySalary = (salary, working_hours, days) => {
+export const getHourlySalary = (salary, working_hours, month) => {
+  const days =
+    working_hours === 24 ? dayjs(month).daysInMonth() : countWorkingDays(month);
   return salary / days / working_hours;
 };
+
+export function countWorkingDays(yyyyMm) {
+  const start = dayjs(yyyyMm + "-01");
+  const daysInMonth = start.daysInMonth();
+  let count = 0;
+
+  for (let i = 1; i <= daysInMonth; i++) {
+    const date = start.date(i);
+    if (date.day() === 0) {
+      // Sunday
+      count++;
+    }
+  }
+
+  return daysInMonth - count;
+}
 
 export const exportToExcel = async (data, columns, fileName) => {
   try {

@@ -115,9 +115,9 @@ const SummaryReport = () => {
       const processedData = data.map((row) => {
         // Calculate hourly salary
         const hourlySalary = getHourlySalary(
-          row.base_salary,
+          row.base_salary + (row.allowance || 0),
           row.working_hours,
-          dayjs(row.month).businessDaysInMonth().length
+          row.month
         );
         console.log("hourlySalary", hourlySalary);
 
