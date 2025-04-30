@@ -128,7 +128,6 @@ const SummaryReport = () => {
           (row.gross_salary || 0) -
           tax -
           (row.advance || 0) +
-          (row.allowance || 0) +
           (row.overtime_hours_worked || 0) *
             (row.overtime_rate || 0) *
             hourlySalary -

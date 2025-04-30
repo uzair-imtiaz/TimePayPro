@@ -100,6 +100,15 @@ const AttendanceTable = () => {
 
     try {
       if (status === "Leave" || status === "Absent") {
+        const leaveCountData = await db.select(
+          `
+          SELECT COUNT(*) as totalLeaves
+          FROM Attendance
+          WHERE employee_id = ? AND status IN ('Leave', 'Absent') AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now');
+          `,
+          [selectedEmployee]
+        );
+        debugger;
         await db.execute(
           `
           INSERT INTO Attendance (employee_id, date, status, check_in_time, check_out_time)
@@ -109,11 +118,13 @@ const AttendanceTable = () => {
           `,
           [selectedEmployee, date, status, status]
         );
+        debugger;
 
         const employeeData = await db.select(
-          "SELECT leaves_allotted, working_hours FROM Employees WHERE id = ?",
+          "SELECT leaves_allotted, working_hours, base_salary, allowance FROM Employees WHERE id = ?",
           [selectedEmployee]
         );
+        debugger;
 
         if (!employeeData.length) {
           console.error(error);
@@ -126,30 +137,53 @@ const AttendanceTable = () => {
 
         const allottedLeaves = employeeData[0].leaves_allotted;
 
-        const leaveCountData = await db.select(
-          `
-          SELECT COUNT(*) as totalLeaves
-          FROM Attendance
-          WHERE employee_id = ? AND status IN ('Leave', 'Absent') AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now');
-          `,
-          [selectedEmployee]
-        );
-
-        const totalLeaves = leaveCountData[0].totalLeaves;
-
-        const excessLeaves = Math.max(totalLeaves - allottedLeaves, 0);
-        const shortTime = excessLeaves * employeeData[0].working_hours;
+        let totalLeaves = leaveCountData[0].totalLeaves;
+        let shortTime = 0;
+        let grossSalary = 0;
+        if (
+          (totalLeaves > allottedLeaves && status === "Leave") ||
+          status === "Absent"
+        ) {
+          if (totalLeaves > allottedLeaves && status === "Leave") {
+            notification.error({
+              message: "Error",
+              description: "No leaves available. Marking as absent.",
+            });
+            setStatus("Absent");
+          }
+          shortTime = employeeData[0].working_hours;
+          totalLeaves = 0;
+        } else if (totalLeaves < allottedLeaves && status === "Leave") {
+          totalLeaves += 1;
+        }
+        const currentMonth = dayjs(date).format("YYYY-MM");
+        const workingDaysCount =
+          employeeData[0].working_hours === 24
+            ? dayjs(currentMonth).daysInMonth()
+            : countWorkingDays(currentMonth);
+        grossSalary =
+          (employeeData[0].base_salary + employeeData[0].allowance) /
+          workingDaysCount;
         await db.execute(
           `
           INSERT INTO Salaries (employee_id, month, leaves_used, gross_salary, net_salary, short_time)
-          VALUES (?, strftime('%Y-%m', 'now'), 1, 0, 0, ?)
+          VALUES (?, strftime('%Y-%m', 'now'), ?, ?, 0, ?)
           ON CONFLICT(employee_id, month)
           DO UPDATE SET 
-            leaves_used = leaves_used + 1,
-            short_time = ?;
+            leaves_used = ?,
+            short_time = ?,
+            gross_salary = gross_salary + excluded.gross_salary;
           `,
-          [selectedEmployee, shortTime]
+          [
+            selectedEmployee,
+            totalLeaves,
+            grossSalary,
+            shortTime,
+            totalLeaves,
+            shortTime,
+          ]
         );
+        debugger;
 
         notification.success({
           message: "Success",
@@ -180,6 +214,7 @@ const AttendanceTable = () => {
             checkInTime.format("HH:mm"),
           ]
         );
+        debugger;
 
         notification.success({
           message: "Success",
@@ -205,12 +240,9 @@ const AttendanceTable = () => {
       });
       return;
     }
-
     try {
-      const checkInTime = dayjs(
-        `${date} ${record.check_in_time}`,
-        "YYYY-MM-DD HH:mm"
-      );
+      const checkInTime = dayjs(`${record.check_in_time}`, "HH:mm");
+
       await db.execute(
         `
         UPDATE Attendance
@@ -240,13 +272,15 @@ const AttendanceTable = () => {
         allowance,
       } = employeeData[0];
 
-      const hoursWorked = dayjs(checkOutTime).diff(
+      let hoursWorked = dayjs(checkOutTime).diff(
         dayjs(checkInTime),
         "hours",
         true
       );
 
-      if (hoursWorked < 0) {
+      console.log("hoursWorked", hoursWorked);
+
+      if (hoursWorked <= 0) {
         hoursWorked += 24;
       }
 
@@ -257,11 +291,6 @@ const AttendanceTable = () => {
         (workingHours === 24
           ? dayjs(currentMonth).daysInMonth()
           : countWorkingDays(currentMonth));
-
-      console.log(
-        "Math.min(hoursWorked / workingHours, 1);",
-        Math.min(hoursWorked / workingHours, 1)
-      );
 
       console.log("dailySalary", dailySalary);
 
@@ -274,7 +303,7 @@ const AttendanceTable = () => {
       const overtimePay =
         overtimeHours *
         overtimeRate *
-        getHourlySalary(baseSalary, workingHours, currentMonth);
+        getHourlySalary(baseSalary + allowance, workingHours, currentMonth);
 
       const shortTimeDeduction =
         Math.min(hoursWorked / workingHours, 1) * dailySalary;
@@ -286,17 +315,17 @@ const AttendanceTable = () => {
         shortTime > 0
           ? dailySalary - shortTimeDeduction
           : dailySalary + overtimePay;
-      // need to calc short time
+
       await db.execute(
         `
         INSERT INTO Salaries (employee_id, month, gross_salary, net_salary, overtime_hours_worked, short_time)
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(employee_id, month)
         DO UPDATE SET
-          gross_salary = excluded.gross_salary,
-          net_salary = excluded.net_salary,
-          overtime_hours_worked = excluded.overtime_hours_worked,
-          short_time = excluded.short_time;
+          gross_salary = gross_salary + excluded.gross_salary,
+          net_salary = net_salary + excluded.net_salary,
+          overtime_hours_worked = overtime_hours_worked + excluded.overtime_hours_worked,
+          short_time = short_time + excluded.short_time;
         `,
         [
           record.employee_id,
@@ -330,7 +359,9 @@ const AttendanceTable = () => {
       record.check_in_time ? dayjs(record.check_in_time, "HH:mm") : null
     );
     setCheckOutTime(
-      record.check_out_time ? dayjs(record.check_out_time, "HH:mm") : null
+      record.check_out_time
+        ? dayjs(`${record.date} ${record.check_out_time}`, "YYYY-MM-DD HH:mm")
+        : null
     );
     setIsEditModalVisible(true);
   };
@@ -338,12 +369,12 @@ const AttendanceTable = () => {
   const handleEditSubmit = async () => {
     try {
       // find some way to add the encashed laves ./
-      console.log(editingRecord);
       const currentMonth = dayjs(editingRecord.date).format("YYYY-MM");
       const employeeData = await db.select(
-        "SELECT base_salary, overtime_rate, working_hours, leaves_allotted FROM Employees WHERE id = ?",
+        "SELECT base_salary, overtime_rate, working_hours, leaves_allotted, allowance FROM Employees WHERE id = ?",
         [editingRecord.employee_id]
       );
+      debugger;
 
       if (!employeeData.length) {
         notification.error({
@@ -358,6 +389,7 @@ const AttendanceTable = () => {
         overtime_rate: overtimeRate,
         working_hours: workingHours,
         leaves_allotted: allottedLeaves,
+        allowance,
       } = employeeData[0];
 
       // First update the attendance record
@@ -368,6 +400,7 @@ const AttendanceTable = () => {
            WHERE id = ?`,
           [status, editingRecord.id]
         );
+        debugger;
       } else {
         if (!checkInTime) {
           notification.error({
@@ -390,6 +423,7 @@ const AttendanceTable = () => {
             editingRecord.id,
           ]
         );
+        debugger;
       }
 
       // Get all attendance records for the month to recalculate total salary
@@ -399,16 +433,18 @@ const AttendanceTable = () => {
          AND strftime('%Y-%m', date) = ?`,
         [editingRecord.employee_id, currentMonth]
       );
-
-      console.log('monthlyAttendance', monthlyAttendance)
+      debugger;
+      console.log("monthlyAttendance", monthlyAttendance);
 
       let monthlyTotalPay = 0;
       let monthlyOvertimeHours = 0;
       let totalLeaves = 0;
+      let monthlyShortTime = 0;
+      let monthlyGrossPay = 0;
 
       const daysInMonth = dayjs(editingRecord.date).daysInMonth();
-
       for (const record of monthlyAttendance) {
+        let recordDailySalary = 0;
         if (
           record.status === "Present" &&
           record.check_in_time &&
@@ -422,7 +458,7 @@ const AttendanceTable = () => {
             "hours",
             true
           );
-          if (recordHoursWorked < 0) {
+          if (recordHoursWorked <= 0) {
             // Assume checkout is next day if negative hours
             recordHoursWorked += 24;
           }
@@ -430,30 +466,47 @@ const AttendanceTable = () => {
           // Calculate base pay (capped at regular working hours)
           const workingDaysCount =
             workingHours === 24 ? daysInMonth : countWorkingDays(currentMonth);
-          const recordDailySalary =
-            (baseSalary / workingDaysCount)
-            // * Math.min(recordHoursWorked / workingHours, 1);
+          recordDailySalary = (baseSalary + allowance) / workingDaysCount;
+          // * Math.min(recordHoursWorked / workingHours, 1);
 
-            const recordOvertimeHours =
-            Math.round(Math.max(recordHoursWorked - workingHours, 0) * 100) / 100;
+          const recordOvertimeHours =
+            Math.round(Math.max(recordHoursWorked - workingHours, 0) * 100) /
+            100;
+          const dailyShortTime =
+            Math.round(Math.max(workingHours - recordHoursWorked, 0) * 100) /
+            100;
 
           const hourlyRate = getHourlySalary(
-            baseSalary,
+            baseSalary + allowance,
             workingHours,
             currentMonth
           );
           const recordOvertimePay =
             recordOvertimeHours * overtimeRate * hourlyRate;
 
-          monthlyTotalPay += recordDailySalary + recordOvertimePay;
-          monthlyOvertimeHours += recordOvertimeHours;
-        } else if (record.status === "Leave") {
-          totalLeaves++;
-        }
-      }
+          const recordShortTimeDeduction = dailyShortTime * recordDailySalary;
 
-      const excessLeaves = Math.max(totalLeaves - allottedLeaves, 0);
-      const shortTime = excessLeaves * workingHours;
+          monthlyOvertimeHours += recordOvertimeHours;
+          monthlyShortTime += dailyShortTime;
+          // monthlyGrossPay += recordDailySalary;
+          monthlyTotalPay +=
+            dailyShortTime > 0
+              ? recordDailySalary - recordShortTimeDeduction
+              : recordDailySalary + recordOvertimePay;
+        } else if (record.status === "Leave" && totalLeaves < allottedLeaves) {
+          totalLeaves++;
+          // const workingDaysCount =
+          //   workingHours === 24 ? daysInMonth : countWorkingDays(currentMonth);
+          // recordDailySalary = (baseSalary + allowance) / workingDaysCount;
+          // monthlyGrossPay += recordDailySalary;
+        } else if (
+          record.status === "Absent" ||
+          (record.status === "Leave" && totalLeaves >= allottedLeaves)
+        ) {
+          monthlyShortTime += workingHours;
+        }
+        monthlyGrossPay += recordDailySalary;
+      }
 
       // Update or create salary record for the month
       await db.execute(
@@ -472,13 +525,14 @@ const AttendanceTable = () => {
         [
           editingRecord.employee_id,
           currentMonth,
-          monthlyTotalPay,
+          monthlyGrossPay,
           monthlyTotalPay,
           monthlyOvertimeHours,
           totalLeaves,
-          shortTime,
+          monthlyShortTime,
         ]
       );
+      debugger;
 
       await fetchAttendance(pagination.current);
 

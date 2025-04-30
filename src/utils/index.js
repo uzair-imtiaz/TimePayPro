@@ -55,7 +55,6 @@ export const runLeaveEncashmentBatch = async (month, db) => {
 const taxables = ["ceo", "director"];
 
 export const getTax = (department = "", designation = null) => {
-  debugger;
   const lowerCaseDepartment = department.toLowerCase();
   if (!designation && lowerCaseDepartment === "bank") {
     return 4 * 113750;
